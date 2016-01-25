@@ -89,7 +89,7 @@ def pick_position(conf):
 
 
 @trollius.coroutine
-def interactive_mode(world, conf):
+def spawn_population(world, conf):
     """
     :param world:
     :type world: World
@@ -168,22 +168,11 @@ def run_server(conf):
     def callback(data):
         req = Request()
         req.ParseFromString(data)
-        imode_value = None
+       
 
         if req.request == "produce_offspring":
             reproduce.append(req.data.split("+++"))
-            imode_value = True
-        elif req.request == "enable_interaction":
-            imode_value = True
-        elif req.request == "disable_interaction":
-            imode_value = False
 
-        if imode_value is not None:
-            interactive[0] = imode_value
-            print("Interactive mode is now %s" % ("ON" if interactive[0] else "OFF"))
-
-            if not interactive[0]:
-                reproduce[:] = []
 
     subscriber = world.manager.subscribe(
         '/gazebo/default/request', 'gazebo.msgs.Request', callback)
@@ -192,7 +181,7 @@ def run_server(conf):
     yield From(world.pause(False))
 
     while True:
-        yield From(interactive_mode(world, conf))
+        yield From(spawn_population(world, conf))
 
         yield From(trollius.sleep(12))
         yield From(cleanup(world))

@@ -41,7 +41,7 @@ parser.add_argument("-f", "--fast", help="Short reproduction wait.",
 
 parent_color = (1, 0, 0, 0.5)
 child_color = (0, 1, 0, 0.5)
-insert_z = 1.5
+insert_z = 3.0
 
 
 
