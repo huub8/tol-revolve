@@ -30,7 +30,7 @@
         <geometry>
           <mesh>
             <uri>model://tol_env/meshes/birth_clinic2.dae</uri>
-            <scale>2.0 2.0 3.0</scale>
+            <scale>2.0 3.0 2.0</scale>
           </mesh>
             
         </geometry>
@@ -40,7 +40,7 @@
         <geometry>
           <mesh>
             <uri>model://tol_env/meshes/birth_clinic2.dae</uri>
-            <scale>2.0 2.0 3.0</scale>
+            <scale>2.0 3.0 2.0</scale>
           </mesh>
             
         </geometry>

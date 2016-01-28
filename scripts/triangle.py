@@ -27,6 +27,7 @@ from tol.config import parser
 from tol.manage import World
 from tol.logging import logger, output_console
 from revolve.util import multi_future
+from tol.online_evolution import Food_Grid
 
 # Log output to console
 output_console()
@@ -41,10 +42,56 @@ parser.add_argument("-f", "--fast", help="Short reproduction wait.",
 
 parent_color = (1, 0, 0, 0.5)
 child_color = (0, 1, 0, 0.5)
+
+#insertion height in meters:
 insert_z = 3.0
 
+# initial food density
+init_food_density = 5
 
 
+# food density grid:
+food_field = Food_Grid(xmin=-10, ymin=-10, xmax=10, ymax=10, xresol=100, yresol=100, value=init_food_density)
+
+
+# account that keeps track of robot's achievements:
+class RobotAccount:
+    def __init__(self, robot, food):
+        self.robot = robot
+        self.food_found = food
+        self.last_food_pos = (robot.last_position.x, robot.last_position.y)
+    
+    
+    def add_food(self, add_food_amount):
+        self.food_found = self.food_found + add_food_amount
+
+
+    # detect when robot finds food:
+    def update(self):
+        cur_pos = (self.robot.last_position.x, self.robot.last_position.y)
+
+        # distance from robot to position of the last piece of food:
+        dist_sq = pow(cur_pos[0] - self.last_food_pos[0], 2) + pow(cur_pos[1] - self.last_food_pos[1], 2)
+
+        local_food_density = food_field.get_density(cur_pos[0], cur_pos[1])
+        cell_i, cell_j = food_field.find_cell(cur_pos[0], cur_pos[1])
+
+        # distance that robot must travel to find another piece of food:
+        max_dist_sq = 1.0 / (local_food_density + 0.0001)
+
+        # if that distance was traveled, add food to counter and remember current position
+        if dist_sq >= max_dist_sq:
+            self.last_food_pos = cur_pos
+            self.add_food(1)
+            # decrease local food density:
+            food_field.change_density(cur_pos[0], cur_pos[1], -1)
+            print "robot %d found food, now %d pieces found, [%d, %d]-local density = %f" \
+                  % (self.robot.robot.id, self.food_found, cell_i, cell_j, local_food_density)
+
+
+
+# robot accounts:
+accounts = []
 
 
 @trollius.coroutine
@@ -89,18 +136,19 @@ def pick_position(conf):
 
 
 @trollius.coroutine
-def spawn_population(world, conf):
+def spawn_robots(world, conf, number):
     """
     :param world:
     :type world: World
     :return:
     """
-    poses = [Pose(position=pick_position(conf)) for _ in range(1)]
+    poses = [Pose(position=pick_position(conf)) for _ in range(number)]
     trees, bboxes = yield From(world.generate_population(len(poses)))
-
-
-    fut = yield From(world.insert_population(trees, poses))
-    yield From(fut)
+    for _ in range(number):
+        fut = yield From(world.insert_robot(trees[0], poses[0]))
+        robot = yield From(fut)
+        print("new robot id = %d" %robot.robot.id)
+        accounts.append(RobotAccount(robot = robot, food = 0))
 
 
 
@@ -133,6 +181,12 @@ def cleanup(world, max_bots=10, remove_from=5):
 
 
 
+@trollius.coroutine
+def update_states(world):
+    for account in accounts:
+        account.update()
+
+
 
 
 @trollius.coroutine
@@ -153,13 +207,13 @@ def run_server(conf):
     world = yield From(World.create(conf))
     yield From(world.pause(True))
 
-    start_bots = conf.num_initial_bots
-    poses = [Pose(position=pick_position(conf)) for _ in range(start_bots)]
+#    start_bots = conf.num_initial_bots
+#    poses = [Pose(position=pick_position(conf)) for _ in range(start_bots)]
 
-    trees, bboxes = yield From(world.generate_population(len(poses)))
+#    trees, bboxes = yield From(world.generate_population(len(poses)))
 
-    fut = yield From(world.insert_population(trees, poses))
-    yield From(fut)
+#    fut = yield From(world.insert_population(trees, poses))
+#    yield From(fut)
 
     # List of reproduction requests
     reproduce = []
@@ -178,12 +232,14 @@ def run_server(conf):
         '/gazebo/default/request', 'gazebo.msgs.Request', callback)
     yield From(subscriber.wait_for_connection())
 
+    yield From(spawn_robots(world, conf, 5))
+
     yield From(world.pause(False))
 
     while True:
-        yield From(spawn_population(world, conf))
 
-        yield From(trollius.sleep(12))
+        yield From(update_states(world))
+        yield From(trollius.sleep(0.1))
         yield From(cleanup(world))
 
 

@@ -41,9 +41,17 @@ parser.add_argument("-f", "--fast", help="Short reproduction wait.",
 
 parent_color = (1, 0, 0, 0.5)
 child_color = (0, 1, 0, 0.5)
-insert_z = 1.5
+insert_z = 3.0
 
 
+class RobotAccount:
+    def __init__(self, robot_id, food):
+        self.robot_id = robot_id
+        self.food_found = food
+    
+    
+    def add_food(self, add_food_amount):
+        self.food_found = self.food_found + add_food_amount
 
 
 
@@ -98,9 +106,9 @@ def spawn_population(world, conf):
     poses = [Pose(position=pick_position(conf)) for _ in range(1)]
     trees, bboxes = yield From(world.generate_population(len(poses)))
 
-
-    fut = yield From(world.insert_population(trees, poses))
-    yield From(fut)
+    fut = yield From(world.insert_robot(trees[0], poses[0]))
+    robot = yield From(fut)
+    print("new robot id = %d" %robot.robot.id)
 
 
 
@@ -153,13 +161,13 @@ def run_server(conf):
     world = yield From(World.create(conf))
     yield From(world.pause(True))
 
-    start_bots = conf.num_initial_bots
-    poses = [Pose(position=pick_position(conf)) for _ in range(start_bots)]
+#    start_bots = conf.num_initial_bots
+#    poses = [Pose(position=pick_position(conf)) for _ in range(start_bots)]
 
-    trees, bboxes = yield From(world.generate_population(len(poses)))
+#    trees, bboxes = yield From(world.generate_population(len(poses)))
 
-    fut = yield From(world.insert_population(trees, poses))
-    yield From(fut)
+#    fut = yield From(world.insert_population(trees, poses))
+#    yield From(fut)
 
     # List of reproduction requests
     reproduce = []
