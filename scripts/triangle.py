@@ -74,7 +74,7 @@ def dist2d(point1, point2):
 
 # account that keeps track of robot's achievements:
 class RobotAccount:
-    def __init__(self, world, robot, food, life_time, max_mates=1, mating_cooldown = 5):
+    def __init__(self, world, robot, food, life_time, max_mates = 1, mating_cooldown = 5):
         self.robot = robot
         self.food_found = food
         self.last_food_pos = (robot.last_position.x, robot.last_position.y)
@@ -118,7 +118,7 @@ class RobotAccount:
             print "robot %d found food, now %d pieces found, [%d, %d]-local density = %f" \
                   % (self.robot.robot.id, self.food_found, cell_i, cell_j, local_food_density)
 
-        if self.num_mates < self.max_mates and self.time_since_mating >= self.mating_cooldown:
+        if self.time_since_mating >= self.mating_cooldown:
             yield From(self.try_to_mate())
 
 
@@ -127,10 +127,10 @@ class RobotAccount:
     def try_to_mate(self):
         # copy current list of robots so that it does not grow infinitely:
         robots = [r for r in self.world.robot_list()]
-        
+
         my_pos = (self.robot.last_position.x, self.robot.last_position.y)
         for other_robot in robots:
-            if not other_robot == self.robot:
+            if self.num_mates < self.max_mates and not other_robot == self.robot:
                 other_pos = (other_robot.last_position.x, other_robot.last_position.y)
                 dist = dist2d(my_pos, other_pos)
                 if dist > 0 and dist < mating_distance:
@@ -374,9 +374,15 @@ def main():
             sys.exit(0)
 
         raise context['exception']
-
     try:
+
+
+
         loop = trollius.get_event_loop()
+
+        loop.set_debug(enabled=True)
+  #      logging.basicConfig(level=logging.DEBUG)
+
         loop.set_exception_handler(handler)
         loop.run_until_complete(run_server(args))
     except KeyboardInterrupt:
