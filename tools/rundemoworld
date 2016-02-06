@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs gazebo with the correct plugin path
-WORLD=demo.world
+WORLD=/home/elte/mt/tol/scripts/offline-evolve/offline-evolve.world
 if [ "$1" == "--visual" ]; then
     CMD=gazebo
 else

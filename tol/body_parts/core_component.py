@@ -75,17 +75,12 @@ class CoreComponent(BodyPart, ColorMixin):
     def get_slot_tangent(self, slot):
         """
         Return slot tangent
+        :param slot:
         """
         self.check_slot(slot)
-        if slot == 0:
-            # Front face tangent: top face
-            return Vector3(0, 0, 1)
-        elif slot == 1:
-            # Back face tangent: top face
-            return Vector3(0, 0, 1)
-        elif slot == 2:
-            # Right face tangent: back face
-            return Vector3(0, 1, 0)
 
-        # Left face tangent: back face
-        return Vector3(0, 1, 0)
+        # The top face is tangent to all supported
+        # slots in the plane, front, back, right, left
+        # Since there's no particular reason for choosing any
+        # other we just return the top face for all.
+        return Vector3(0, 0, 1)

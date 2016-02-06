@@ -1,87 +1,48 @@
 from __future__ import print_function
-import os
-import sys
-import random
-sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/../')
 
-import trollius
-from trollius import From
+from revolve.build.util import in_grams, in_mm
+from sdfbuilder import Link, SDF, Model
+from sdfbuilder.structure import Collision, Visual, Box, StructureCombination
+from sdfbuilder.math import Vector3
+import math
 
-from tol.manage import World
-from revolve.convert.yaml import yaml_to_robot
-from tol.spec import body_spec, brain_spec
-from tol.config import Config
-from tol.build import get_builder, get_simulation_robot
+from tol.build.builder import apply_surface_parameters
 
-bot_yaml = '''
----
-body:
-  id          : Core
-  type        : Core
-  children:
-    0:
-        id: Light
-        type: LightSensor
-    1:
-        id: Touch
-        type: TouchSensor
-    2:
-        id: Brick
-        type: FixedBrick
-        children:
-            1:
-                id: ParametricBarJoint
-                type: ParametricBarJoint
-    3:
-        id: AHinge
-        type: ActiveHinge
-'''
+MASS = in_grams(3)
+SENSOR_BASE_WIDTH = in_mm(34)
+SENSOR_BASE_THICKNESS = in_mm(1.5)
+SENSOR_THICKNESS = in_mm(9)
+SENSOR_WIDTH = in_mm(18.5)
+SENSOR_HEIGHT = in_mm(16)
+SEPARATION = in_mm(1)
 
-bot_yaml = '''
----
-body:
-  id          : Brick
-  type        : FixedBrick
-  children:
-    0:
-        id: Light
-        type: LightSensor
-    1:
-        id: Touch
-        type: TouchSensor
-'''
+m = Model(name="mybot")
+sdf = SDF(elements=[m])
+
+geom = Box(SENSOR_BASE_THICKNESS, SENSOR_BASE_WIDTH, SENSOR_BASE_WIDTH, MASS)
+base = StructureCombination("base", geom)
+
+x_sensors = 0.5 * (SENSOR_BASE_THICKNESS + SENSOR_THICKNESS)
+y_left_sensor = -0.5 * SENSOR_WIDTH - SEPARATION
+y_right_sensor = 0.5 * SENSOR_WIDTH + SEPARATION
+
+left = StructureCombination("left", Box(SENSOR_THICKNESS, SENSOR_WIDTH, SENSOR_HEIGHT, MASS))
+left.set_position(Vector3(x_sensors, y_left_sensor, 0))
+
+right = StructureCombination("right", Box(SENSOR_THICKNESS, SENSOR_WIDTH, SENSOR_HEIGHT, MASS))
+right.set_position(Vector3(x_sensors, y_right_sensor, 0))
+
+link = Link("my_link")
+link.add_elements([base, left, right])
 
 
-@trollius.coroutine
-def run():
-    conf = Config(analyzer_address=None)
-    bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
-    builder = get_builder(conf)
-    counter = 0
-    world = yield From(World.create(conf))
-    yield From(world.pause())
+link.align_center_of_mass()
+link.calculate_inertial()
 
-    for _ in range(2):
-        name = "test_bot_%d" % counter
-        sdf = get_simulation_robot(bot, name, builder, conf)
-        fut = yield From(world.insert_model(sdf))
-        yield From(fut)
-        print("Inserted #%d" % counter)
-        yield From(world.pause(False))
-        yield From(trollius.sleep(0.1))
+m.add_element(link)
 
-        fut = yield From(world.delete_model(name, "delete_robot"))
-        yield From(fut)
-        print("Deleted #%d" % counter)
-        yield From(trollius.sleep(0.1))
-        yield From(world.pause(True))
-        counter += 1
+apply_surface_parameters(m)
+m.translate(Vector3(0, 0, in_mm(30)))
 
-
-if __name__ == '__main__':
-    try:
-        loop = trollius.get_event_loop()
-        loop.run_until_complete(run())
-    except KeyboardInterrupt:
-        print("Got Ctrl+C, shutting down.")
-
+with open("/home/elte/.gazebo/models/test_bot/model.sdf", "w") as f:
+    f.write(str(sdf))

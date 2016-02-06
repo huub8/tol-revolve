@@ -50,8 +50,8 @@ class Hinge(BodyPart, ColorMixin):
             Box(CONNECTION_PART_LENGTH, CONNECTION_PART_THICKNESS, CONNECTION_PART_HEIGHT, MASS_FRAME),
             "conn_a", visual=visual_a)
 
-        # Flip visual along the x-axis by rotating PI degrees over z,
-        # also needs to be
+        # Flip visual along the x-axis by rotating PI degrees over z
+        # This will put it upside down, so we also flip it PI degrees over x
         visual_b = Visual("conn_b_visual", mesh.copy())
         visual_b.rotate_around(Vector3(1, 0, 0), math.pi, relative_to_child=False)
         visual_b.rotate_around(Vector3(0, 0, 1), math.pi, relative_to_child=False)
@@ -98,7 +98,7 @@ class Hinge(BodyPart, ColorMixin):
 
     def get_slot_tangent(self, slot_id):
         self.check_slot(slot_id)
-        return Vector3(0, 1, 0)
+        return Vector3(0, 0, 1)
 
     def get_slot(self, slot_id):
         self.check_slot(slot_id)

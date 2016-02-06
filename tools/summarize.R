@@ -1,15 +1,25 @@
 # Use this script to summarize one or multiple concatenated
 # runs of evolution data.
+# This post helps here:
+# http://stackoverflow.com/a/10349375/358873
+
 library(ggplot2)
 library(plyr)
+library(reshape)
 
 data = read.csv("generations.csv", head=TRUE)
-cdata = ddply(data, c("gen"), summarise, mean=mean(vel), sd=sd(vel))
+cdata = ddply(data, c("gen"), summarise, Fitness=mean(fitness), Velocity=mean(vel), fsd=sd(fitness), vsd=sd(vel))
+mdata = melt(cdata, id=c("gen", "fsd", "vsd"))
 
-linecolor <- "#00A6DE"
-ggplot(cdata, aes(x=gen, y=mean)) +
- geom_ribbon(aes(ymin=mean-sd, ymax=mean+sd), alpha=0.2, fill=linecolor, linetype=0) +
- geom_line(colour=linecolor) +
- geom_point(colour=linecolor) +
- xlab("Generation") +
- ylab("Velocity (m/s)")
+fcolor <- "#00A6DE"
+vcolor <- "#B00000"
+
+
+ggplot(mdata, aes(gen)) +
+  geom_line(aes(y=value, colour=variable)) +
+  geom_ribbon(data=cdata, aes(ymin=Fitness-fsd, ymax=Fitness+fsd), alpha=0.2, fill=fcolor, linetype=0) +
+  geom_ribbon(data=cdata, aes(ymin=Velocity-vsd, ymax=Velocity+vsd), alpha=0.2, fill=vcolor, linetype=0) +
+  scale_colour_manual(values=c(fcolor, vcolor), labels=c("Fitness*", "Velocity (m/s)"),
+                      name="Variable") +
+  xlab("Generation") +
+  ylab("Value")

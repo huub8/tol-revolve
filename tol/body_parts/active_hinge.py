@@ -105,7 +105,7 @@ class ActiveHinge(BodyPart, ColorMixin):
 
     def get_slot_tangent(self, slot_id):
         self.check_slot(slot_id)
-        return Vector3(0, 1, 0)
+        return Vector3(0, 0, 1)
 
     def get_slot(self, slot_id):
         self.check_slot(slot_id)

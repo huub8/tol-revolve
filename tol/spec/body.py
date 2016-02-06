@@ -1,4 +1,7 @@
 from __future__ import absolute_import
+
+import random
+
 from revolve.generate import FixedOrientationBodyGenerator
 from revolve.spec import BodyImplementation, PartSpec, ParamSpec
 from ..body_parts import *
@@ -57,7 +60,7 @@ def get_body_spec(conf):
                 "beta",
                 default=0,
                 min_value=0,
-                max_value=math.pi,
+                max_value=0 if conf.enforce_planarity else math.pi,
                 epsilon=conf.body_mutation_epsilon
             )] + color_params
         ),
@@ -124,13 +127,14 @@ def get_body_spec(conf):
 
 class BodyGenerator(FixedOrientationBodyGenerator):
     """
-
+    Body generator for ToL with some additions
     """
 
     def __init__(self, conf):
         """
         """
         body_spec = get_body_spec(conf)
+        self.conf = conf
         super(BodyGenerator, self).__init__(
             body_spec,
 
@@ -155,10 +159,15 @@ class BodyGenerator(FixedOrientationBodyGenerator):
         )
         self.last_parameters = None
 
-    def initialize_part(self, spec, part, root=False):
+    def initialize_part(self, spec, new_part, parent_part, root_part, root=False):
         """
         Overrides `initialize_part` to make sure all parts get
         the same color as the root part
+        :param parent_part:
+        :param spec:
+        :param new_part:
+        :param root_part:
+        :param root:
         """
         params = spec.get_random_parameters(serialize=False)
         if root:
@@ -167,9 +176,9 @@ class BodyGenerator(FixedOrientationBodyGenerator):
             params['red'], params['green'], params['blue'] = \
                 self.last_parameters['red'], self.last_parameters['green'], self.last_parameters['blue']
 
-        part.orientation = self.choose_orientation(part, root)
-        spec.set_parameters(part.param, params)
-        return part
+        new_part.orientation = self.choose_orientation(new_part, parent_part, root_part, root)
+        spec.set_parameters(new_part.param, params)
+        return new_part
 
     def generate(self):
         """
@@ -180,11 +189,23 @@ class BodyGenerator(FixedOrientationBodyGenerator):
         self.last_parameters = None
         return result
 
-    def choose_orientation(self, part, root=False):
+    def choose_part(self, parts, parent, body, root=False):
         """
-        Orientation override that always returns 0 for the root orientation.
+        Overridable method to choose a body part from a list
+        of part type identifiers.
+        :param parts:
+        :type parts: list[str]
+        :param parent: Parent body part
+        :param body: The robot body
+        :param root: Whether the part is root
+        :return: The chosen part
+        :rtype: str
         """
-        return 0 if root else super(BodyGenerator, self).choose_orientation(part, root)
+        # Don't chain parametric bar joints, it leads to ugly constructions
+        if parent and parent.type == "ParametricBarJoint":
+            parts = [p for p in parts if p != "ParametricBarJoint"]
+
+        return False if not parts else random.choice(parts)
 
 
 def get_body_generator(conf):
