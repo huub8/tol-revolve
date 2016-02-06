@@ -65,3 +65,6 @@ target/
 
 # Virtual env
 .venv
+
+# gedit backup files
+*.*~
