@@ -48,8 +48,17 @@ SURFACE_FRICTION1 = 1.0
 SURFACE_FRICTION2 = 1.0
 SURFACE_SLIP1 = 0.01
 SURFACE_SLIP2 = 0.01
-SURFACE_SOFT_CFM = 0.01
-SURFACE_SOFT_ERP = 0.2
+
+# soft_erp / soft_cfm for surfaces cannot be set directly
+# in Gazebo, so they are calculated into kp and kd here using
+# the step size and the intended values. Make sure to change
+# them when you change simulation parameters (and change
+# them in `tol_ground` as well).
+SURFACE_ERP = 0.1
+SURFACE_CFM = 10e-6
+INTENDED_STEP_SIZE = 0.005
+SURFACE_KP = SURFACE_ERP / (SURFACE_CFM * INTENDED_STEP_SIZE)
+SURFACE_KD = 1.0 / SURFACE_CFM - (SURFACE_ERP / SURFACE_CFM)
 
 # Thickness and height of the arena walls in meters
 WALL_THICKNESS = 0.05

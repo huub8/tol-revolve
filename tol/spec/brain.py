@@ -25,5 +25,6 @@ def get_brain_generator(conf):
     """
     return NeuralNetworkGenerator(
         get_brain_spec(conf),
-        max_hidden=constants.MAX_HIDDEN_NEURONS
+        max_hidden=constants.MAX_HIDDEN_NEURONS,
+        conn_prob=conf.p_connect_neurons
     )
