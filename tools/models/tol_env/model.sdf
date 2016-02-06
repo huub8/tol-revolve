@@ -8,7 +8,7 @@
       <collision name="ground_col">
         <geometry>
           <mesh>
-            <uri>model://tol_env/meshes/arena.dae</uri>
+            <uri>model://tol_env/meshes/arena_hi_walls.dae</uri>
             <scale>20.0 20.0 20.0</scale>
           </mesh>
         </geometry>
@@ -17,7 +17,7 @@
         <cast_shadows>false</cast_shadows>
         <geometry>
           <mesh>
-            <uri>model://tol_env/meshes/arena.dae</uri>
+            <uri>model://tol_env/meshes/arena_low_walls.dae</uri>
             <scale>20.0 20.0 20.0</scale>
           </mesh>
         </geometry>

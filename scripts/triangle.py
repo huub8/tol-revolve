@@ -74,11 +74,12 @@ def dist2d(point1, point2):
 
 # account that keeps track of robot's achievements:
 class RobotAccount:
-    def __init__(self, world, robot, food, life_time, max_mates = 1, mating_cooldown = 5):
+    def __init__(self, world, population, robot, food, life_time, max_mates = 1, mating_cooldown = 5):
         self.robot = robot
         self.food_found = food
         self.last_food_pos = (robot.last_position.x, robot.last_position.y)
         self.time_left = life_time
+        self.population = population
 
         self.world = world
         self.max_mates = max_mates
@@ -125,18 +126,24 @@ class RobotAccount:
 
     @trollius.coroutine
     def try_to_mate(self):
-        # copy current list of robots so that it does not grow infinitely:
-        robots = [r for r in self.world.robot_list()]
+        # copy current list of accounts so that it does not grow infinitely:
+        parents = [p for p in self.population]
 
         my_pos = (self.robot.last_position.x, self.robot.last_position.y)
-        for other_robot in robots:
-            if self.num_mates < self.max_mates and not other_robot == self.robot:
-                other_pos = (other_robot.last_position.x, other_robot.last_position.y)
+        for other_robot in parents:
+            if not other_robot == self and \
+                self.num_mates < self.max_mates and \
+                other_robot.num_mates < other_robot.max_mates:
+
+                other_pos = (other_robot.robot.last_position.x, other_robot.robot.last_position.y)
                 dist = dist2d(my_pos, other_pos)
-                if dist > 0 and dist < mating_distance:
-                    yield From(do_mate(self.world, self.robot, other_robot))
+                if dist < mating_distance:
+                    yield From(do_mate(self.world, self.robot, other_robot.robot))
                     self.num_mates += 1
+                    other_robot.num_mates += 1
+
                     self.time_since_mating = 0
+                    other_robot.time_since_mating = 0
 
 
 
@@ -145,7 +152,7 @@ class RobotAccount:
 
 
 # list of robot accounts:
-class Accounts:
+class Population:
 
     def __init__(self):
         self.account_list = []
@@ -165,7 +172,7 @@ class Accounts:
 
 
 # robot accounts:
-accounts = Accounts()
+accounts = Population()
 
 
 @trollius.coroutine
@@ -275,7 +282,7 @@ def spawn_robot(world, tree, pose, parents=None):
 
     robot = yield From(fut)
     print("new robot id = %d" %robot.robot.id)
-    accounts.append(RobotAccount(world = world, robot = robot, food = 0, life_time = init_life_time))
+    accounts.append(RobotAccount(world = world, population = accounts, robot = robot, food = 0, life_time = init_life_time))
 
 
 
