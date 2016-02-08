@@ -329,6 +329,7 @@ def run_server(conf):
     world = yield From(World.create(conf))
     yield From(world.pause(True))
 
+    print "WORLD CREATED"
 #    start_bots = conf.num_initial_bots
 #    poses = [Pose(position=pick_position(conf)) for _ in range(start_bots)]
 
@@ -344,7 +345,7 @@ def run_server(conf):
     def callback(data):
         req = Request()
         req.ParseFromString(data)
-       
+
 
         if req.request == "produce_offspring":
             reproduce.append(req.data.split("+++"))
@@ -357,7 +358,7 @@ def run_server(conf):
     yield From(spawn_initial_robots(world, conf, init_pop_size))
 
     yield From(world.pause(False))
-
+    print "WORLD UNPAUSED"
 
     deltaT = 0.1
     while True:
@@ -369,6 +370,9 @@ def run_server(conf):
 
 
 def main():
+
+    print "START"
+
     args = parser.parse_args()
     seed = random.randint(1, 1000000) if args.seed < 0 else args.seed
     random.seed(seed)
@@ -381,17 +385,26 @@ def main():
             sys.exit(0)
 
         raise context['exception']
+
+
+
     try:
-
-
 
         loop = trollius.get_event_loop()
 
-        loop.set_debug(enabled=True)
-  #      logging.basicConfig(level=logging.DEBUG)
+#        loop.set_debug(enabled=True)
+#        logging.basicConfig(level=logging.DEBUG)
 
         loop.set_exception_handler(handler)
         loop.run_until_complete(run_server(args))
+
+        # run = run_server(args)
+        # run.next()
+        # while True:
+        #     run.next()
+
+        print "FINISH"
+
     except KeyboardInterrupt:
         print("Got Ctrl+C, shutting down.")
     except ConnectionRefusedError:

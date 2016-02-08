@@ -11,7 +11,7 @@ ANALYZER_PID=$!
 sleep 2
 ACTUAL_ANALYZER_PID=`ps -ef | awk '$3 == '${ANALYZER_PID}' { print $2 } '`
 sleep 3
-python $DIR/../scripts/triangle.py $MODE &
+python $DIR/../scripts/triangle.py &
 PY_PID=$!
 wait $GZ_PID
 kill ${ACTUAL_ANALYZER_PID}
