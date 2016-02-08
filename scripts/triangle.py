@@ -63,9 +63,8 @@ init_pop_size = 5
 # maximum mating distance:
 mating_distance = 2
 
-
 # maximum matings per robot:
-max_mates_per_robot = 2
+max_mates_per_robot = 9999
 
 
 def dist2d(point1, point2):
@@ -74,7 +73,7 @@ def dist2d(point1, point2):
 
 # account that keeps track of robot's achievements:
 class RobotAccount:
-    def __init__(self, world, population, robot, food, life_time, max_mates = 1, mating_cooldown = 5):
+    def __init__(self, world, population, robot, food, life_time, max_mates = 9999, mating_cooldown = 15):
         self.robot = robot
         self.food_found = food
         self.last_food_pos = (robot.last_position.x, robot.last_position.y)
@@ -90,6 +89,7 @@ class RobotAccount:
 
     def add_food(self, add_food_amount):
         self.food_found = self.food_found + add_food_amount
+	self.time_left += 20
 
 
     # detect when robot finds food:
