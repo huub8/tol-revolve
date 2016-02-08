@@ -103,18 +103,18 @@ class World(WorldManager):
         """
         return super(World, self).robots_header() + ['max_age']
 
-  #  def create_robot_manager(self, robot_name, tree, robot, position, time, parents):
-  #      """
-  #      Overriding with robot manager with more capabilities.
-  #      :param robot_name:
-  #      :param tree:
-  #      :param robot:
-  #      :param position:
-  #      :param time:
-  #      :param parents:
-  #      :return:
-  #      """
-  #      return Robot(self.conf, robot_name, tree, robot, position, time, parents)
+    def create_robot_manager(self, robot_name, tree, robot, position, time, parents):
+        """
+        Overriding with robot manager with more capabilities.
+        :param robot_name:
+        :param tree:
+        :param robot:
+        :param position:
+        :param time:
+        :param parents:
+        :return:
+        """
+        return Robot(self.conf, robot_name, tree, robot, position, time, parents)
 
     @trollius.coroutine
     def add_highlight(self, position, color):
