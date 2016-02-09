@@ -28,7 +28,7 @@ from tol.config import parser
 from tol.manage import World
 from tol.logging import logger, output_console
 from revolve.util import multi_future
-from tol.online_evolution import Food_Grid, Population, RobotAccount
+from tol.triangle_of_life import Food_Grid, Population, RobotAccount
 
 # Log output to console
 output_console()
