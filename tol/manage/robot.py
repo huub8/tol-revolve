@@ -108,6 +108,10 @@ class Robot(RvRobot):
         in context of velocities instead.
         :return:
         """
+        if self.age() < (1.5 * self.conf.warmup_time):
+            # We want at least some data
+            return 0.0
+
         return 5.0 * self.displacement_velocity() + self.velocity()
 
     def did_mate_with(self, other):

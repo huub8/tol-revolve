@@ -73,13 +73,13 @@ parser.add_argument(
 
 parser.add_argument(
     '--initial-age-mu',
-    default=36000 / 4.0, type=float,
+    default=36000 / 8.0, type=float,
     help="Gaussian mean for the age distribution of the initial population."
 )
 
 parser.add_argument(
     '--initial-age-sigma',
-    default=36000 / 8.0, type=float,
+    default=36000 / 16.0, type=float,
     help="Gaussian standard deviation for age distribution of "
          "the initial population."
 )
@@ -104,7 +104,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--mating-fitness-threshold',
-    default=0.4, type=float,
+    default=0.5, type=float,
     help="The maximum fractional fitness difference between two robots that "
          "will allow a mate. E.g. for a fraction of 0.5, two robots will not mate"
          " if one is 50% less fit than the other."
@@ -112,13 +112,13 @@ parser.add_argument(
 
 parser.add_argument(
     '--gestation-period',
-    default=36000 / 40.0, type=float,
+    default=36000 / 50.0, type=float,
     help="The minimum time a robot has to wait between matings."
 )
 
 parser.add_argument(
     '--max-pair-children',
-    default=2, type=int,
+    default=3, type=int,
     help="The maximum number of children one pair of robots is allowed to have."
 )
 
