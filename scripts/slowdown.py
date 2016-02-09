@@ -11,6 +11,8 @@ import sys
 from pygazebo.pygazebo import DisconnectError
 import trollius
 from trollius import ConnectionRefusedError, ConnectionResetError, From, Return
+import random
+import math
 
 # Add root directory to import search path
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/../')
@@ -20,16 +22,7 @@ from tol.config import parser
 from tol.manage import World
 
 
-bot_yaml = '''
----
-body:
-  id          : Core
-  type        : Hinge
-  children:
-    1:
-      id: Cam
-      type: LightSensor
-'''
+random.seed(12345)
 
 
 @trollius.coroutine
@@ -44,53 +37,56 @@ def sleep_sim_time(world, seconds):
 
 
 @trollius.coroutine
+def birth(world, tree, bbox, parents):
+    """
+    Birth process, picks a robot position and inserts
+    the robot into the world.
+    :param world:
+    :param tree:
+    :param bbox:
+    :param parents:
+    :return:
+    """
+    angle = random.random() * 2 * math.pi
+    r = 2.0
+
+    # Drop height is 20cm here
+    # TODO Should we check whether other robots are not too close?
+    pos = Vector3(r * math.cos(angle), r * math.sin(angle), -bbox.min.z + 0.2)
+    fut = yield From(world.insert_robot(tree, Pose(position=pos), parents))
+    raise Return(fut)
+
+
+@trollius.coroutine
 def run_server():
     conf = parser.parse_args()
-    conf.enable_light_sensor = True
+    conf.enable_light_sensor = False
     conf.output_directory = None
-    conf.analyzer_address = ""
+    conf.max_lifetime = 999999
+    conf.initial_age_mu = 500
+    conf.initial_age_sigma = 500
 
-    body_spec = get_body_spec(conf)
-    brain_spec = get_brain_spec(conf)
-    bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
     world = yield From(World.create(conf))
     yield From(world.pause(True))
+    trees, bboxes = yield From(world.generate_population(40))
+    insert_queue = zip(trees, bboxes)
 
-    diffs = collections.deque(maxlen=20)
-    mdiffs = collections.deque(maxlen=20)
-    ref = -1
-    mref = -1
-    sim_time_sec = 2.5
+    yield From(world.pause(False))
+    for tree, bbox in insert_queue[:40]:
+        fut = yield From(birth(world, tree, bbox, None))
+        yield From(fut)
+        yield From(sleep_sim_time(world, 1.0))
+
+    print("Inserted all robots")
+    sim_time_sec = 1.0
 
     while True:
-        tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
         before = time.time()
-        fut = yield From(world.insert_robot(tree, Pose(position=Vector3(z=1.0))))
-        robot = yield From(fut)
-        yield From(world.pause(False))
-        middle = time.time()
         yield From(sleep_sim_time(world, sim_time_sec))
         after = time.time()
-        yield From(world.delete_robot(robot))
-        yield From(world.pause(True))
 
         diff = after - before
-        diffs.append(diff)
-        mdiff = after - middle
-        mdiffs.append(mdiff)
-
-        # fac = sim_time_sec / diff
-        avg = sum(diffs) / len(diffs)
-        mavg = sum(mdiffs) / len(mdiffs)
-        if ref < 0 and len(diffs) == 10:
-            ref = avg
-            mref = mavg
-
-        ref_diff = avg - ref
-        mref_diff = mavg - mref
-        # avg_fac = sim_time_sec / avg
-
-        print("%f\t%f\t%f\t%f\t%f\t%f" % (diff, avg, ref_diff, mdiff, mavg, mref_diff))
+        print(sim_time_sec / diff)
 
 
 def main():

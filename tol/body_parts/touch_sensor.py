@@ -56,19 +56,20 @@ class TouchSensor(Box, ColorMixin):
         :return:
         """
         # Visual is provided by the mesh in the root
-        sensor_link = self.create_component(
+        sensor_component = self.create_component(
             BoxGeom(SENSOR_THICKNESS, SENSOR_WIDTH, SENSOR_HEIGHT, MASS), label,
             visual=False
         )
-        sensor_link.set_position(Vector3(x_sensors, y_sensor, 0))
+        sensor_component.set_position(Vector3(x_sensors, y_sensor, 0))
 
         # Anchor and axis are in child frame
-        self.fix(self.component, sensor_link)
+        self.fix(self.component, sensor_component)
 
         # Create and add the SDF sensor
         contact = SdfSensor(label+"_sensor", "contact",
                             update_rate=self.conf.sensor_update_rate)
-        sensor_link.add_sensor(contact, "touch")
+        contact.add_element('<contact><collision>'+sensor_component.collision.name+'</collision></contact>')
+        sensor_component.add_sensor(contact, "touch")
 
     def get_slot_position(self, slot):
         self.check_slot(slot)
