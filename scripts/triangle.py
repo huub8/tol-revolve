@@ -50,7 +50,7 @@ init_food_density = 20
 
 
 #time before robots die
-init_life_time = 10
+init_life_time = 20
 
 #bonus life time per food item
 time_per_food = 1
@@ -67,10 +67,6 @@ mating_distance = 2
 # maximum matings per robot:
 max_mates_per_robot = 9999
 
-
-# robot accounts:
-accounts = Population(init_life_time = init_life_time, food_field = food_field,
-                      mating_distance = mating_distance, time_per_food = time_per_food)
 
 
 @trollius.coroutine
@@ -97,32 +93,6 @@ def sleep_sim_time(world, seconds, state_break=[False]):
 
 
 
-@trollius.coroutine
-def cleanup(world):
-    dead_accounts = []
-    dead_bots = []
-    for account in accounts:
-        if account.time_left <= 0:
-            dead_accounts.append(account)
-            dead_bots.append(account.robot)
-
-    # delete dead robots from the world:
-    for dead_bot in dead_bots:
-        yield From(world.delete_robot(dead_bot))
-
-    # delete accounts of dead robots:
-    accounts.remove(dead_accounts)
-
-
-
-
-@trollius.coroutine
-def update_states(world, deltaT):
-    for account in accounts:
-        yield From(account.update(deltaT))
-
-
-
 
 @trollius.coroutine
 def run_server(conf):
@@ -142,23 +112,23 @@ def run_server(conf):
     conf.age_cutoff = 99999
 
     conf.pose_update_frequency = 20
- #   interactive = [True]
 
+
+    # initialize world:
     world = yield From(World.create(conf))
-    yield From(world.pause(True))
+    yield From(world.pause(False))
 
 
     print "WORLD CREATED"
-#    start_bots = conf.num_initial_bots
-#    poses = [Pose(position=pick_position(conf)) for _ in range(start_bots)]
 
-#    trees, bboxes = yield From(world.generate_population(len(poses)))
 
-#    fut = yield From(world.insert_population(trees, poses))
-#    yield From(fut)
 
-    # List of reproduction requests
-    reproduce = []
+    # robot accounts:
+    accounts = Population(init_life_time = init_life_time, food_field = food_field,
+                          mating_distance = mating_distance, time_per_food = time_per_food,
+                          world = world)
+
+
 
     # Request callback for the subscriber
     def callback(data):
@@ -166,24 +136,33 @@ def run_server(conf):
         req.ParseFromString(data)
 
 
-        if req.request == "produce_offspring":
-            reproduce.append(req.data.split("+++"))
-
-
     subscriber = world.manager.subscribe(
         '/gazebo/default/request', 'gazebo.msgs.Request', callback)
     yield From(subscriber.wait_for_connection())
 
-    yield From(accounts.spawn_initial_robots(world, conf, init_pop_size))
+
+    # spawn initial population of robots:
+    yield From(accounts.spawn_initial_robots(conf, init_pop_size))
 
     yield From(world.pause(False))
     print "WORLD UNPAUSED"
 
     deltaT = 0.01
-    while True:
 
-        yield From(update_states(world, deltaT))
-        yield From(cleanup(world))
+    # run loop:
+    while True:
+        # detect food acquisition:
+        for account in accounts:
+            yield From(account.update())
+
+
+        # reproduce:
+        parents = accounts.find_mate_pairs()
+        yield From(accounts.reproduce(parents))
+
+        # remove dead robots:
+        yield From(accounts.cleanup())
+
         yield From(trollius.sleep(deltaT))
 
 
@@ -211,7 +190,7 @@ def main():
 
         loop = trollius.get_event_loop()
 
-#        loop.set_debug(enabled=True)
+        loop.set_debug(enabled=True)
 #        logging.basicConfig(level=logging.DEBUG)
 
         loop.set_exception_handler(handler)

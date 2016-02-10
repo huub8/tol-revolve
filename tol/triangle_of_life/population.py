@@ -37,6 +37,33 @@ def pick_position():
 
 
 
+
+class Timers:
+    def __init__(self, names, current_time):
+        self.timers = {name: current_time for name in names}
+
+    def is_it_time(self, name, time_period, current_time):
+        last_time = self.timers[name]
+
+#        print self.timers
+#        print 'NAME = ', name
+#        print 'last = ', last_time
+#        print 'current = ', current_time
+#        print ''
+        if last_time is not None:
+            elapsed = current_time - last_time
+            if elapsed >= time_period:
+                return True
+
+        return False
+
+
+    def reset(self, name, current_time):
+        self.timers[name] = current_time
+
+
+
+
 # account that keeps track of robot's achievements:
 class RobotAccount:
     def __init__(self, world, population, robot, life_time, time_per_food,
@@ -54,26 +81,24 @@ class RobotAccount:
         self.mating_cooldown = mating_cooldown
 
         self.last_food_pos = (robot.last_position.x, robot.last_position.y)
-        self.time_left = life_time
+        self.life_time = life_time
 
 
         self.num_mates = 0
-        self.time_since_mating = 0
 
+        self.timers = Timers(['reproduce', 'death'], self.world.last_time)
+        print 'WORLD TIME = ', self.world.last_time
 
     def add_food(self, add_food_amount):
         self.food_found = self.food_found + add_food_amount
-        self.time_left += self.time_bonus_per_food * add_food_amount
+        self.life_time += self.time_bonus_per_food * add_food_amount
 
 
     # detect when robot finds food:
-
     @trollius.coroutine
-    def update(self, deltaT):
-        self.time_left -= deltaT
-        self.time_since_mating += deltaT
+    def update(self):
 
-        cur_pos = (self.robot.last_position.x, self.robot.last_position.y)
+        cur_pos = self.my_position()
 
         # distance from robot to position of the last piece of food:
         dist_sq = pow(cur_pos[0] - self.last_food_pos[0], 2) + pow(cur_pos[1] - self.last_food_pos[1], 2)
@@ -93,74 +118,53 @@ class RobotAccount:
             print "robot %d found food, now %d pieces found, [%d, %d]-local density = %f" \
                   % (self.robot.robot.id, self.food_found, cell_i, cell_j, local_food_density)
 
-        if self.time_since_mating >= self.mating_cooldown:
-            yield From(self.try_to_mate())
+
+
+    def my_position(self):
+        return (self.robot.last_position.x, self.robot.last_position.y)
 
 
 
-    @trollius.coroutine
-    def try_to_mate(self):
-        # copy current list of accounts so that it does not grow infinitely:
-        parents = [p for p in self.population]
-
-        my_pos = (self.robot.last_position.x, self.robot.last_position.y)
-        for other_robot in parents:
-            if not other_robot == self and \
-                self.num_mates < self.max_mates and \
-                other_robot.num_mates < other_robot.max_mates:
-
-                other_pos = (other_robot.robot.last_position.x, other_robot.robot.last_position.y)
-                dist = dist2d(my_pos, other_pos)
-                if dist < self.mating_distance:
-                    yield From(self.do_mate(self.world, self.robot, other_robot.robot))
-                    self.num_mates += 1
-                    other_robot.num_mates += 1
-
-                    self.time_since_mating = 0
-                    other_robot.time_since_mating = 0
-
-
-
-    @trollius.coroutine
-    def do_mate(self, world, ra, rb):
+    # this method decides whether I want to mate with other_robot
+    # for now it just returns True if enough time passed since last mating
+    def want_to_mate(self, other_robot):
         """
+        This method decides whether this robot wants to mate with other_robot
 
-        :param world:
-        :param ra:
-        :param rb:
+        :param other_robot:
         :return:
         """
-        mate = None
-        num_attempts = 0
-        while num_attempts < 10:
-            # Attempt reproduction
-            mate = yield From(world.attempt_mate(ra, rb))
-
-            if mate:
-                break
-            num_attempts += 1
-
-    #    logger.debug("Mates selected, highlighting points...")
-
-        new_pos = pick_position()
-        new_pos.z = insert_z
-    #    hls = yield From(create_highlights(
-    #        world, ra.last_position, rb.last_position, new_pos))
-    #    yield From(trollius.sleep(2))
-        if mate:
-            logger.debug("Inserting child...")
-            child, bbox = mate
-            pose = Pose(position=new_pos)
-            yield From(self.population.spawn_robot(world, tree=child, pose=pose, parents=[ra, rb]))
-        else:
-            logger.debug("Could not mate")
-    #    yield From(sleep_sim_time(world, 1.8))
-
-    #    logger.debug("Removing highlights...")
-     #   yield From(remove_highlights(world, hls))
+        return True
 
 
 
+    def ready_to_mate(self):
+        """
+        Returns True if this robot is ready to mate
+        :return:
+        """
+        return self.timers.is_it_time('reproduce', self.mating_cooldown, self.world.last_time)
+
+
+
+    def notify_mating(self):
+            """
+            Call this method whenever this robot successfully mates
+            It resets the cooldown time and increments personal number of mates
+            :return:
+            """
+            self.timers.reset('reproduce', self.world.last_time)
+            self.num_mates += 1
+
+
+
+    def am_i_dead(self):
+        """
+        Returns True if this robot must die of old age
+        :return:
+        """
+        cur_time = self.world.last_time
+        return self.timers.is_it_time('death', self.life_time, cur_time)
 
 
 
@@ -168,12 +172,13 @@ class RobotAccount:
 # list of robot accounts:
 class Population:
 
-    def __init__(self, init_life_time, time_per_food, mating_distance, food_field):
+    def __init__(self, init_life_time, time_per_food, mating_distance, food_field, world):
         self.account_list = []
         self.food_field = food_field
         self.init_life_time = init_life_time
         self.time_per_food = time_per_food
         self.mating_distance = mating_distance
+        self.world = world
 
     def __iter__(self):
         return iter(self.account_list)
@@ -181,16 +186,16 @@ class Population:
 
 
     @trollius.coroutine
-    def spawn_robot(self, world, tree, pose, parents=None):
+    def spawn_robot(self, tree, pose, parents=None):
         if parents is None:
-            fut = yield From(world.insert_robot(tree, pose))
+            fut = yield From(self.world.insert_robot(tree, pose))
         else:
-            fut = yield From(world.insert_robot(tree, pose, parents=parents))
+            fut = yield From(self.world.insert_robot(tree, pose, parents=parents))
 
 
         robot = yield From(fut)
         print("new robot id = %d" %robot.robot.id)
-        self.append(RobotAccount(world = world, population = self,
+        self.append(RobotAccount(world = self.world, population = self,
                                      robot = robot, life_time = self.init_life_time,
                                      time_per_food = self.time_per_food))
 
@@ -198,16 +203,11 @@ class Population:
 
 
     @trollius.coroutine
-    def spawn_initial_robots(self, world, conf, number):
-        """
-        :param world:
-        :type world: World
-        :return:
-        """
+    def spawn_initial_robots(self, conf, number):
         poses = [Pose(position=pick_position()) for _ in range(number)]
-        trees, bboxes = yield From(world.generate_population(len(poses)))
+        trees, bboxes = yield From(self.world.generate_population(len(poses)))
         for index in range(number):
-            yield From(self.spawn_robot(world, trees[index], poses[index]))
+            yield From(self.spawn_robot(trees[index], poses[index]))
 
 
 
@@ -216,6 +216,81 @@ class Population:
         self.account_list.append(account)
 
 
+
     def remove(self, remove_these_accounts):
         acc_upd = [acc for acc in self.account_list if acc not in remove_these_accounts]
         self.account_list = acc_upd
+
+
+
+    def find_mate_pairs(self):
+
+        bots_ready = [r for r in self.account_list if r.ready_to_mate()]
+        num_bots = len(bots_ready)
+
+        pairs = []
+        for i in range(num_bots):
+            robot_a = bots_ready[i]
+            a_pos = robot_a.my_position()
+            for j in range(i+1, num_bots):
+                robot_b = bots_ready[j]
+                b_pos = robot_b.my_position()
+                dist = dist2d(a_pos, b_pos)
+                if dist < self.mating_distance:
+                    pairs.append((robot_a, robot_b))
+
+        return pairs
+
+
+
+    @trollius.coroutine
+    def cleanup(self):
+
+        dead_accounts = []
+        dead_bots = []
+        for account in self.account_list:
+            if account.am_i_dead():
+                dead_accounts.append(account)
+                dead_bots.append(account.robot)
+
+        # delete dead robots from the world:
+        for dead_bot in dead_bots:
+            yield From(self.world.delete_robot(dead_bot))
+
+        # delete accounts of dead robots:
+        self.remove(dead_accounts)
+
+
+    @trollius.coroutine
+    def reproduce(self, parent_pairs):
+        for pair in parent_pairs:
+            parent_a = pair[0]
+            parent_b = pair[1]
+
+            if parent_a.want_to_mate(parent_b) and parent_b.want_to_mate(parent_b):
+
+                mate = None
+                num_attempts = 0
+                while num_attempts < 10:
+                    # Attempt reproduction
+                    mate = yield From(self.world.attempt_mate(parent_a.robot, parent_b.robot))
+
+                    if mate:
+                        break
+                    num_attempts += 1
+
+
+                new_pos = pick_position()
+                new_pos.z = insert_z
+
+                if mate:
+                    logger.debug("Inserting child...")
+                    child, bbox = mate
+                    pose = Pose(position=new_pos)
+
+                    parent_a.notify_mating()
+                    parent_b.notify_mating()
+
+                    yield From(self.spawn_robot(tree=child, pose=pose, parents=[parent_a.robot, parent_b.robot]))
+                else:
+                    logger.debug("Could not mate")
