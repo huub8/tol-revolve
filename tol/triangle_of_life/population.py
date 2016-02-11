@@ -2,6 +2,7 @@ import math
 import random
 import trollius
 from trollius import From, Return, Future
+from Queue import Queue
 
 # Revolve / sdfbuilder
 from sdfbuilder.math import Vector3
@@ -10,6 +11,7 @@ from sdfbuilder import Pose, Model, Link, SDF
 # ToL
 from ..config import parser
 from ..manage import World
+from . import Timers
 from ..logging import logger, output_console
 from revolve.util import multi_future
 
@@ -37,29 +39,6 @@ def pick_position():
 
 
 
-
-class Timers:
-    def __init__(self, names, current_time):
-        self.timers = {name: current_time for name in names}
-
-    def is_it_time(self, name, time_period, current_time):
-        last_time = self.timers[name]
-
-#        print self.timers
-#        print 'NAME = ', name
-#        print 'last = ', last_time
-#        print 'current = ', current_time
-#        print ''
-        if last_time is not None:
-            elapsed = current_time - last_time
-            if elapsed >= time_period:
-                return True
-
-        return False
-
-
-    def reset(self, name, current_time):
-        self.timers[name] = current_time
 
 
 
@@ -125,8 +104,6 @@ class RobotAccount:
 
 
 
-    # this method decides whether I want to mate with other_robot
-    # for now it just returns True if enough time passed since last mating
     def want_to_mate(self, other_robot):
         """
         This method decides whether this robot wants to mate with other_robot
