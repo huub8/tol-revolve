@@ -17,10 +17,7 @@ from revolve.util import multi_future
 
 
 
-# TODO mutate_weights(genotype)
 # TODO robot_to_genotype(robot)
-
-# TODO implement brain genetic encoding
 # TODO implement conversion from Tree to brain genetic encoding
 # TODO implement insertion of a brain into a robot
 
