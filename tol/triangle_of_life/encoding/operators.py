@@ -71,7 +71,6 @@ class Mutator:
         old_weight = connection_to_split.weight
         connection_to_split.enabled = False
 
-
         neuron_from = connection_to_split.neuron_from
         neuron_to = connection_to_split.neuron_to
 
@@ -80,24 +79,86 @@ class Mutator:
 
         neuron_middle = Neuron("hidden", body_part_id)
 
-        new_conn1 = ConnectionGene(neuron_from, neuron_middle,
-                                  weight = old_weight,
-                                  innovation_number = self.innovation_number,
-                                  enabled = True)
-        self.innovation_number += 1
+        self.add_connection(neuron_from, neuron_middle, old_weight, genotype)
+        self.add_connection(neuron_middle, neuron_to, 1.0, genotype)
+        self.add_neuron(neuron_middle, genotype)
 
-        new_conn2 = ConnectionGene(neuron_middle, neuron_to,
-                                  weight = 1.0,
-                                  innovation_number = self.innovation_number,
-                                  enabled = True)
-        self.innovation_number += 1
 
-        new_neuron = NeuronGene(neuron_middle,
+
+    def add_neuron(self, neuron, genotype):
+        new_neuron_gene = NeuronGene(neuron,
                                 innovation_number = self.innovation_number,
                                 enabled = True)
         self.innovation_number += 1
+        genotype.add_neuron_gene(new_neuron_gene)
 
-        genotype.add_connection_gene(new_conn1)
-        genotype.add_connection_gene(new_conn2)
-        genotype.add_connection_gene(new_neuron)
 
+    def add_connection(self, neuron_from, neuron_to, weight, genotype):
+        new_conn_gene = ConnectionGene(neuron_from, neuron_to,
+                                  weight = weight,
+                                  innovation_number = self.innovation_number,
+                                  enabled = True)
+        self.innovation_number += 1
+        genotype.add_connection_gene(new_conn_gene)
+
+
+class Crossover:
+
+    def crossover(self, genotype_more_fit, genotype_less_fit):
+
+        # sort genes by historical marks:
+        genes_better = sorted(genotype_more_fit.neuron_genes + genotype_more_fit.connection_genes,
+                        key = lambda gene: gene.historical_mark)
+
+        genes_worse = sorted(genotype_less_fit.neuron_genes + genotype_less_fit.connection_genes,
+                        key = lambda gene: gene.historical_mark)
+
+        # assume that each genotype has at most 1 gene per historical_mark
+
+        min_hist_mark = min(genes_better[0].historical_mark, genes_worse[0].historical_mark)
+
+        max_hist_mark = max(genes_better[-1].historical_mark,
+                            genes_worse[-1].historical_mark)
+
+        gene_pairs = []
+
+        # search for pairs of genes with equal marks:
+        for mark in range(min_hist_mark, max_hist_mark+1):
+            better_gene = None
+            for i in range(len(genes_better)):
+                if genes_better[i].historical_mark == mark:
+                    better_gene = genes_better[i]
+                    break
+
+            worse_gene = None
+            for i in range(len(genes_worse)):
+                if genes_worse[i].historical_mark == mark:
+                    worse_gene = genes_worse[i]
+                    break
+
+            gene_pairs.append((better_gene, worse_gene))
+
+
+        child_genes = []
+
+        for pair in gene_pairs:
+
+            # if gene is paired, inherit one of the pair with 50/50 chance:
+            if pair[0] is not None and pair[1] is not None:
+                if random.random() < 0.5:
+                    child_genes.append(pair[0])
+                else:
+                    child_genes.append(pair[1])
+
+            # inherit unpaired gene from the more fit parent:
+            elif pair[0] is not None:
+                child_genes.append(pair[0])
+
+        child_genotype = GeneticEncoding()
+        for gene in child_genes:
+            if isinstance(gene, NeuronGene):
+                child_genotype.add_neuron_gene(gene)
+            elif isinstance(gene, ConnectionGene):
+                child_genotype.add_connection_gene(gene)
+
+        return child_genotype
