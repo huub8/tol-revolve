@@ -55,13 +55,8 @@ class Mutator:
             if num_attempts >= self.max_attempts:
                 return False
 
-        new_gene = ConnectionGene(neuron_from, neuron_to,
-                                  weight = random.gauss(0, sigma),
-                                  innovation_number = self.innovation_number,
-                                  enabled = True)
-        self.innovation_number += 1
+        self.add_connection(neuron_from, neuron_to, weight = random.gauss(0, sigma), genotype = genotype)
 
-        genotype.add_connection_gene(new_gene)
 
         return True
 
