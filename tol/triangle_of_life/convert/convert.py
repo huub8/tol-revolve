@@ -8,9 +8,9 @@ from sdfbuilder.math import Vector3
 from sdfbuilder import Pose, Model, Link, SDF
 
 # ToL
-from ..config import parser
-from ..manage import World
-from ..logging import logger, output_console
+from ...config import parser
+from ...manage import World
+from ...logging import logger, output_console
 
 from ..encoding import GeneticEncoding, Neuron
 
@@ -26,7 +26,8 @@ class NeuralNetworkParser:
         :type robot: revolve.angle.Robot
         """
 
-        pb_brain = robot.tree.to_robot().brain
+  #      pb_brain = robot.tree.to_robot().brain
+        pb_brain = robot.brain
         pb_neurons = pb_brain.neuron
         pb_connections = pb_brain.connection
 

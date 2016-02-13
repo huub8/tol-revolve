@@ -6,9 +6,11 @@ import yaml
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/../')
 
 from revolve.convert import yaml_to_robot, robot_to_yaml
+from revolve.spec import PartSpec, NeuronSpec, ParamSpec, RobotSpecificationException as SpecErr
+from revolve.spec import BodyImplementation, NeuralNetImplementation
 
 from tol.config import parser
-from tol.spec import get_brain_spec
+from tol.spec import get_brain_spec, get_body_spec
 from tol.triangle_of_life.convert import NeuralNetworkParser
 from tol.triangle_of_life.encoding import Mutator
 
@@ -58,15 +60,38 @@ brain:
       dst: Sub1-out-1
 '''
 
+# the body and brain specifications
+body_spec = BodyImplementation({
+    ("CoreComponent", "E"): PartSpec(
+        arity=2,
+        outputs=1,
+        inputs=2
+    ),
+    "2Params": PartSpec(
+        arity=2,
+        inputs=2,
+        outputs=2,
+        params=[ParamSpec("param_a", default=-1), ParamSpec("param_b", default=15)]
+    )
+})
+
+brain_spec = NeuralNetImplementation({
+    "Simple": NeuronSpec(params=["bias"]),
+    "Oscillator": NeuronSpec(
+        params=["period", "phaseOffset", "amplitude"]
+    )
+})
+
 
 
 def main():
 
     args = parser.parse_args()
-    brain_spec = get_brain_spec(args)
+ #   brain_spec = get_brain_spec(args)
+ #   body_spec = get_body_spec(args)
     brain_parser = NeuralNetworkParser(brain_spec)
 
-    pb_robot = yaml_to_robot(yaml_robot)
+    pb_robot = yaml_to_robot(body_spec, brain_spec, yaml_robot)
     print "yaml converted to pb"
 
     mutator = Mutator()
@@ -75,9 +100,14 @@ def main():
 
     print "pb converted to genotype"
     print ""
-    print genotype.neuron_genes
+    print "neurons:"
+    neurons, connections = genotype.to_lists()
+    for neuron in neurons:
+        print neuron
     print ""
-    print genotype.connection_genes
+    print "connections:"
+    for connection in connections:
+        print connection
 
 
 if __name__ == '__main__':

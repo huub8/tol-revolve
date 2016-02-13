@@ -17,14 +17,14 @@ class Gene:
 
 class NeuronGene(Gene):
     def __init__(self, neuron, innovation_number=0, enabled=True):
-        super(NodeGene, self).__init__(innovation_number = innovation_number,
+        Gene.__init__(self, innovation_number = innovation_number,
                                        enabled = enabled)
         self.neuron = neuron
 
 
 class ConnectionGene(Gene):
     def __init__(self, neuron_from, neuron_to, weight, innovation_number=0, enabled=True):
-        super(ConnectionGene, self).__init__(innovation_number = innovation_number,
+        Gene.__init__(self, innovation_number = innovation_number,
                                              enabled = enabled)
         self.neuron_from = neuron_from
         self.neuron_to = neuron_to
@@ -71,3 +71,28 @@ class GeneticEncoding:
 
     def add_connection_gene(self, connection_gene):
         self.connection_genes.append(connection_gene)
+
+
+    def to_lists(self):
+        neuron_list = []
+        for neuron_gene in self.neuron_genes:
+            neuron = neuron_gene.neuron
+            neuron_list.append({
+                "hist_mark": neuron_gene.historical_mark,
+                "enabled": neuron_gene.enabled,
+                "id": neuron.neuron_id,
+                "layer": neuron.layer,
+                "type": neuron.neuron_type
+            })
+
+        conn_list = []
+        for conn_gene in self.connection_genes:
+            conn_list.append({
+                "hist_mark": conn_gene.historical_mark,
+                "enabled": conn_gene.enabled,
+                "from": conn_gene.neuron_from.neuron_id,
+                "to": conn_gene.neuron_to.neuron_id
+            })
+
+        return neuron_list, conn_list
+

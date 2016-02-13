@@ -11,7 +11,7 @@ from sdfbuilder import Pose, Model, Link, SDF
 # ToL
 from ..config import parser
 from ..manage import World
-from . import Timers
+from util import Timers
 from ..logging import logger, output_console
 from revolve.util import multi_future
 
