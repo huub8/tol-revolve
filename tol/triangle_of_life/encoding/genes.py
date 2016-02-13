@@ -1,8 +1,11 @@
 
 class Neuron:
-    def __init__(self, type, body_part_id):
-        self.type = type
+    def __init__(self, neuron_id, layer, neuron_type, body_part_id, neuron_params):
+        self.neuron_id = neuron_id
+        self.layer = layer
+        self.neuron_type = neuron_type
         self.body_part_id = body_part_id
+        self.neuron_params = neuron_params
 
 
 
