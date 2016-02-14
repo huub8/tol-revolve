@@ -1,11 +1,23 @@
 
 class Neuron:
+    """
+    This is all the info about a neuron
+    """
+
     def __init__(self, neuron_id, layer, neuron_type, body_part_id, neuron_params):
         self.neuron_id = neuron_id
         self.layer = layer
         self.neuron_type = neuron_type
         self.body_part_id = body_part_id
         self.neuron_params = neuron_params
+
+    def copy(self):
+        copy_neuron = Neuron(neuron_id=self.neuron_id,
+                             layer=self.layer,
+                             neuron_type=self.neuron_type,
+                             body_part_id=self.body_part_id,
+                             neuron_params=self.neuron_params)
+        return copy_neuron
 
 
 
@@ -95,4 +107,30 @@ class GeneticEncoding:
             })
 
         return neuron_list, conn_list
+
+
+    def copy(self):
+        copy_gen = GeneticEncoding()
+        old_to_new = {}
+
+        for n_gene in self.neuron_genes:
+
+            new_n_gene = NeuronGene(
+                    neuron=n_gene.neuron.copy(),
+                    innovation_number=n_gene.historical_mark,
+                    enabled=n_gene.enabled)
+
+            old_to_new[n_gene] = new_n_gene
+            copy_gen.add_neuron_gene(new_n_gene)
+
+        for c_gene in self.connection_genes:
+            new_c_gene = ConnectionGene(
+                    neuron_from=old_to_new[c_gene.neuron_from],
+                    neuron_to= old_to_new[c_gene.neuron_to],
+                    weight=c_gene.weight,
+                    innovation_number=c_gene.historical_mark,
+                    enabled=c_gene.enabled)
+            copy_gen.add_connection_gene(new_c_gene)
+
+        return copy_gen
 

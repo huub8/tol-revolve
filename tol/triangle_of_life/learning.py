@@ -16,10 +16,7 @@ from ..logging import logger, output_console
 from revolve.util import multi_future
 
 
-
-# TODO robot_to_genotype(robot)
-# TODO implement conversion from Tree to brain genetic encoding
-# TODO implement insertion of a brain into a robot
+# TODO implement insertion of a brain into a robot (convert genotype into protobuf brain and then create tree and insert robot into the world)
 
 class RobotLearner:
 
@@ -29,17 +26,35 @@ class RobotLearner:
     # TODO self.get_fitness()
     # TODO self.update_fitness()
 
-    def __init__(self ,world, population, robot, population_size, max_num_generations):
+    def __init__(self, world, robot, mutator, nn_parser, population_size, max_num_generations):
         self.robot = robot
         self.world = world
-        self.population = population
         self.active_brain = None
         self.innovation_number = 0
         self.fitness = 0
+        self.pop_size = population_size
+
+        self.mutator = mutator
+        self.nn_parser = nn_parser
 
         self.timers = Timers(['evaluate'], self.world.last_time)
 
-        brain_population = get_init_brains()
+        brain_population = self.get_init_brains()
+
+        # FOR DEBUG
+        ##########################################
+        for br in brain_population:
+            print "neurons:"
+            n_gs, c_gs = br.to_lists()
+            for n_g in n_gs:
+                print n_g
+            print "connections:"
+            for c_g in c_gs:
+                print c_g
+            print ""
+            print ""
+        ##########################################
+
 
         self.evaluation_queue = Queue()
 
@@ -47,8 +62,6 @@ class RobotLearner:
             self.evaluation_queue.put(br)
 
         self.brain_fitness = {}
-
-        self.pop_size = population_size
 
         first_brain = self.evaluation_queue.get()
         self.activate_brain(first_brain)
@@ -63,11 +76,29 @@ class RobotLearner:
 
 
     def get_init_brains(self):
-        init_genotype = robot_to_genotype(self.robot)
+        init_genotype = self.robot_to_genotype(self.robot)
+
+        # FOR DEBUG
+        #########################################
+        print "initial brain:"
+
+        n_gs, c_gs = init_genotype.to_lists()
+        print "neurons:"
+        for n_g in n_gs:
+            print n_g
+        print "connections:"
+        for c_g in c_gs:
+            print c_g
+        print ""
+        print ""
+        ##########################################
+
 
         init_pop = []
         for _ in range(self.pop_size):
-            mutated_genotype = mutate_weights(init_genotype)
+            mutated_genotype = init_genotype.copy()
+
+            self.mutator.mutate_weights(genotype=mutated_genotype, probability=0.2, sigma=1)
             init_pop.append(mutated_genotype)
 
         return init_pop
@@ -117,3 +148,8 @@ class RobotLearner:
 
         self.activate_brain(best_brain)
         return self.robot
+
+
+    def robot_to_genotype(self, robot):
+        pb_robot = robot.tree.to_robot()
+        return self.nn_parser.robot_to_genotype(pb_robot, self.mutator)
