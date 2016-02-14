@@ -94,7 +94,8 @@ class GeneticEncoding:
                 "enabled": neuron_gene.enabled,
                 "id": neuron.neuron_id,
                 "layer": neuron.layer,
-                "type": neuron.neuron_type
+                "type": neuron.neuron_type,
+                "params": neuron.neuron_params
             })
 
         conn_list = []

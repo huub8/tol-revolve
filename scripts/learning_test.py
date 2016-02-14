@@ -24,13 +24,11 @@ from sdfbuilder.math import Vector3
 from sdfbuilder import Pose, Model, Link, SDF
 
 # Revolve
-
 from revolve.util import multi_future, wait_for
 from revolve.convert.yaml import yaml_to_robot
 from revolve.angle import Tree
 
 #ToL
-
 from tol.config import parser
 from tol.manage import World
 from tol.logging import logger, output_console
@@ -54,8 +52,6 @@ parser.add_argument("-f", "--fast", help="Short reproduction wait.",
 
 parent_color = (1, 0, 0, 0.5)
 child_color = (0, 1, 0, 0.5)
-
-
 
 
 # braim population size:
@@ -194,7 +190,6 @@ def run_server(conf):
     brain_spec = get_brain_spec(conf)
 
     mutator = Mutator()
-    nn_parser = NeuralNetworkParser(brain_spec)
     pose = Pose(position=Vector3(0, 0, 0))
 
     bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
@@ -204,7 +199,14 @@ def run_server(conf):
 
     print("new robot id = %d" %robot.robot.id)
 
-    learner = RobotLearner(world, robot, mutator, nn_parser, pop_size, 1000)
+    learner = RobotLearner(world=world,
+                           robot=robot,
+                           body_spec=body_spec,
+                           brain_spec=brain_spec,
+                           mutator=mutator,
+                           population_size=pop_size,
+                           evaluation_time=10, # simulation seconds
+                           max_num_generations=1000)
 
     # Request callback for the subscriber
     def callback(data):

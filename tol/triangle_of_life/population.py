@@ -4,19 +4,22 @@ import trollius
 from trollius import From, Return, Future
 from Queue import Queue
 
-# Revolve / sdfbuilder
+# sdfbuilder
 from sdfbuilder.math import Vector3
 from sdfbuilder import Pose, Model, Link, SDF
+
+# Revolve
 from revolve.convert.yaml import yaml_to_robot
-from tol.spec import get_body_spec, get_brain_spec
 from revolve.angle import Tree
+from revolve.util import multi_future
 
 # ToL
+from tol.spec import get_body_spec, get_brain_spec
 from ..config import parser
 from ..manage import World
 from util import Timers
 from ..logging import logger, output_console
-from revolve.util import multi_future
+
 
 
 #insertion height in meters:

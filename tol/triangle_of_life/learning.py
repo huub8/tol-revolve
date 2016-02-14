@@ -4,38 +4,44 @@ import trollius
 from trollius import From, Return, Future
 from Queue import Queue
 
-# Revolve / sdfbuilder
+# sdfbuilder
 from sdfbuilder.math import Vector3
 from sdfbuilder import Pose, Model, Link, SDF
+
+# Revolve
+from revolve.util import multi_future, wait_for
 
 # ToL
 from ..config import parser
 from ..manage import World
-from . import Timers
 from ..logging import logger, output_console
-from revolve.util import multi_future
+from . import Timers
+from .encoding import Mutator, Crossover
+from .convert import NeuralNetworkParser
 
-
-# TODO implement insertion of a brain into a robot (convert genotype into protobuf brain and then create tree and insert robot into the world)
 
 class RobotLearner:
 
-    # TODO self.insert_brain(brain)
     # TODO self.produce_new_generation()
+    # TODO neuron parameters mutation
 
     # TODO self.get_fitness()
     # TODO self.update_fitness()
 
-    def __init__(self, world, robot, mutator, nn_parser, population_size, max_num_generations):
+    def __init__(self, world, robot, body_spec, brain_spec, mutator, population_size, evaluation_time, max_num_generations):
         self.robot = robot
         self.world = world
         self.active_brain = None
         self.innovation_number = 0
         self.fitness = 0
         self.pop_size = population_size
+        self.evaluation_time = evaluation_time
 
+        self.brain_spec = brain_spec
+        self.body_spec = body_spec
+
+        self.nn_parser = NeuralNetworkParser(brain_spec)
         self.mutator = mutator
-        self.nn_parser = nn_parser
 
         self.timers = Timers(['evaluate'], self.world.last_time)
 
@@ -104,16 +110,45 @@ class RobotLearner:
         return init_pop
 
 
+
+    def insert_brain(self, brain_genotype):
+        pb_robot = robot.tree.to_robot()
+        pb_body = pb_robot.body
+        pb_brain = nn_parser.genotype_to_brain(brain_genotype)
+
+        # delete robot with old brain:
+        yield From(self.world.delete_robot(self.robot))
+
+        # create and insert robot with new brain:
+        tree = Tree.from_body_brain(pb_body, pb_brain, self.body_spec)
+        pose = Pose(position=Vector3(0, 0, 0))
+        self.robot = yield From(wait_for(world.insert_robot(tree, pose)))
+
+
     def reset_fitness(self):
         self.fitness = 0
 
 
-    # this method should be called from the main loop
-    # it returns True if learning is over
+    def update_fitness(self):
+        self.fitness = 0
+
+
+    def get_fitness(self):
+        return self.fitness
+
+
     def update(self):
+        """
+        this method should be called from the main loop
+        it returns True if learning is over
+
+        :return: bool
+        """
 
         # when evaluation is over:
         if self.timers.is_it_time('evaluate', self.evaluation_time, self.world.last_time):
+
+            print "Evaluation over, loading new brain"
 
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
@@ -133,12 +168,18 @@ class RobotLearner:
         # continue evaluation:
         self.update_fitness()
 
-        # if termination criteria is met, return True:
+        # if termination criteria are met, return True:
         if self.generation_number >= self.max_generations:
             return True
 
         else:
             return False
+
+
+    def produce_new_generation(self):
+        brain_fitness_list = [(br, fit) for br, fit in self.brain_fitness.iteritems()]
+        best_brains = sorted(brain_fitness_list, key = lambda elem: elem[1], reverse = True)[:self.pop_size]
+
 
 
     # this method should be called when the learning is over to get a robot with the best brain
@@ -152,4 +193,4 @@ class RobotLearner:
 
     def robot_to_genotype(self, robot):
         pb_robot = robot.tree.to_robot()
-        return self.nn_parser.robot_to_genotype(pb_robot, self.mutator)
+        return self.nn_parser.brain_to_genotype(pb_robot.brain, self.mutator)
