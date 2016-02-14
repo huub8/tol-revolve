@@ -7,6 +7,9 @@ from Queue import Queue
 # Revolve / sdfbuilder
 from sdfbuilder.math import Vector3
 from sdfbuilder import Pose, Model, Link, SDF
+from revolve.convert.yaml import yaml_to_robot
+from tol.spec import get_body_spec, get_brain_spec
+from revolve.angle import Tree
 
 # ToL
 from ..config import parser
@@ -186,7 +189,15 @@ class Population:
         for index in range(number):
             yield From(self.spawn_robot(trees[index], poses[index]))
 
-
+    @trollius.coroutine
+    def spawn_initial_given_robots(self, conf, number, bot_yaml):
+        poses = [Pose(position=pick_position()) for _ in range(number)]
+        body_spec = get_body_spec(conf)
+        brain_spec = get_brain_spec(conf)
+        for index in range(number):
+            bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
+            tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
+            yield From(self.spawn_robot(tree, poses[index]))
 
 
     def append(self, account):

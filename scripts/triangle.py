@@ -92,7 +92,105 @@ def sleep_sim_time(world, seconds, state_break=[False]):
         remain = seconds - float(now - start)
 
 
+spider_yaml = '''
+---
+body:
+  id          : Core
+  type        : Core
+  children:
+    0:
+      id: Brick11
+      type: FixedBrick
+      children:
+        1:
+          id: Hinge11
+          type: ActiveHinge
+          children:
+            1:
+              id: Hinge12
+              type: ActiveHinge
+    1:
+      id: Brick21
+      type: FixedBrick
+      children:
+        1:
+          id: Hinge21
+          type: ActiveHinge
+          children:
+            1:
+              id: Hinge22
+              type: ActiveHinge
+    2:
+      id: Brick31
+      type: FixedBrick
+      children:
+        1:
+          id: Hinge31
+          type: ActiveHinge
+          children:
+            1:
+              id: Hinge32
+              type: ActiveHinge
+    3:
+      id: Brick41
+      type: FixedBrick
+      children:
+        1:
+          id: Hinge41
+          type: ActiveHinge
+          children:
+            1:
+              id: Hinge42
+              type: ActiveHinge
 
+'''
+
+snake_yaml = '''
+---
+body:
+  id          : Core
+  type        : Core
+  children:
+    0:
+      id: Hinge11
+      type: FixedBrick
+      children:
+        1:
+          id: Hinge12
+          type: ActiveHinge
+          children:
+            1:
+              id: Hinge13
+              type: ActiveHinge
+              children:
+                1:
+                  id: Hinge14
+                  type: ActiveHinge
+                  children:
+                    1:
+                      id: Hinge15
+                      type: ActiveHinge
+    1:
+      id: Hinge21
+      type: FixedBrick
+      children:
+        1:
+          id: Hinge22
+          type: ActiveHinge
+          children:
+            1:
+              id: Hinge23
+              type: ActiveHinge
+              children:
+                1:
+                  id: Hinge24
+                  type: ActiveHinge
+                  children:
+                    1:
+                      id: Hinge25
+                      type: ActiveHinge
+
+'''
 
 @trollius.coroutine
 def run_server(conf):
@@ -142,7 +240,7 @@ def run_server(conf):
 
 
     # spawn initial population of robots:
-    yield From(accounts.spawn_initial_robots(conf, init_pop_size))
+    yield From(accounts.spawn_initial_given_robots(conf, init_pop_size, snake_yaml))
 
     yield From(world.pause(False))
     print "WORLD UNPAUSED"
