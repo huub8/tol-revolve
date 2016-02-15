@@ -224,7 +224,10 @@ def run_server(conf):
     deltaT = 0.01
 
     # run loop:
-    while not learner.update():
+    while True:
+        result = yield From(learner.update())
+        if result:
+            break
 
         yield From(trollius.sleep(deltaT))
 

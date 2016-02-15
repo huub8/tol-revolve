@@ -1,5 +1,3 @@
-import math
-import random
 import trollius
 from trollius import From, Return, Future
 from Queue import Queue
@@ -10,7 +8,7 @@ from sdfbuilder import Pose, Model, Link, SDF
 
 # Revolve
 from revolve.util import multi_future, wait_for
-
+from revolve.angle import Tree
 # ToL
 from ..config import parser
 from ..manage import World
@@ -76,9 +74,11 @@ class RobotLearner:
         self.max_generations = max_num_generations
 
 
+    @trollius.coroutine
     def activate_brain(self, brain):
+        print "activating brain now"
         self.active_brain = brain
-        self.insert_brain(brain)
+        yield From(self.insert_brain(brain))
 
 
     def get_init_brains(self):
@@ -110,11 +110,12 @@ class RobotLearner:
         return init_pop
 
 
-
+    @trollius.coroutine
     def insert_brain(self, brain_genotype):
-        pb_robot = robot.tree.to_robot()
+        print "inserting brain now"
+        pb_robot = self.robot.tree.to_robot()
         pb_body = pb_robot.body
-        pb_brain = nn_parser.genotype_to_brain(brain_genotype)
+        pb_brain = self.nn_parser.genotype_to_brain(brain_genotype)
 
         # delete robot with old brain:
         yield From(self.world.delete_robot(self.robot))
@@ -122,7 +123,7 @@ class RobotLearner:
         # create and insert robot with new brain:
         tree = Tree.from_body_brain(pb_body, pb_brain, self.body_spec)
         pose = Pose(position=Vector3(0, 0, 0))
-        self.robot = yield From(wait_for(world.insert_robot(tree, pose)))
+        self.robot = yield From(wait_for(self.world.insert_robot(tree, pose)))
 
 
     def reset_fitness(self):
@@ -137,6 +138,7 @@ class RobotLearner:
         return self.fitness
 
 
+    @trollius.coroutine
     def update(self):
         """
         this method should be called from the main loop
@@ -148,7 +150,7 @@ class RobotLearner:
         # when evaluation is over:
         if self.timers.is_it_time('evaluate', self.evaluation_time, self.world.last_time):
 
-            print "Evaluation over, loading new brain"
+            print "Evaluation over"
 
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
@@ -160,8 +162,9 @@ class RobotLearner:
 
             # else continue evaluating brains from the queue:
             else:
+                print "loading new brain"
                 next_brain = self.evaluation_queue.get()
-                self.activate_brain(next_brain)
+                yield From(self.activate_brain(next_brain))
 
             self.timers.reset('evaluate', self.world.last_time)
 
@@ -170,10 +173,10 @@ class RobotLearner:
 
         # if termination criteria are met, return True:
         if self.generation_number >= self.max_generations:
-            return True
+            raise Return(True)
 
         else:
-            return False
+            raise Return(False)
 
 
     def produce_new_generation(self):
