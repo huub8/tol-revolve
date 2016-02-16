@@ -1,6 +1,7 @@
 import trollius
 from trollius import From, Return, Future
 from Queue import Queue
+import random
 
 # sdfbuilder
 from sdfbuilder.math import Vector3
@@ -26,13 +27,19 @@ class RobotLearner:
     # TODO self.get_fitness()
     # TODO self.update_fitness()
 
-    def __init__(self, world, robot, body_spec, brain_spec, mutator, population_size, evaluation_time, max_num_generations):
+    def __init__(self, world, robot, body_spec, brain_spec, mutator,
+                 population_size, tournament_size, evaluation_time, max_num_generations):
         self.robot = robot
         self.world = world
         self.active_brain = None
         self.innovation_number = 0
         self.fitness = 0
+
         self.pop_size = population_size
+        self.tournament_size = tournament_size
+        if self.tournament_size > self.pop_size:
+            self.tournament_size = self.pop_size
+
         self.evaluation_time = evaluation_time
 
         self.brain_spec = brain_spec
@@ -73,10 +80,11 @@ class RobotLearner:
         self.generation_number = 0
         self.max_generations = max_num_generations
 
+        self.on_evaluation_finished = None
+
 
     @trollius.coroutine
     def activate_brain(self, brain):
-        print "activating brain now"
         self.active_brain = brain
         yield From(self.insert_brain(brain))
 
@@ -105,6 +113,7 @@ class RobotLearner:
             mutated_genotype = init_genotype.copy()
 
             self.mutator.mutate_weights(genotype=mutated_genotype, probability=0.2, sigma=1)
+        # TODO mutate_neuron_params()
             init_pop.append(mutated_genotype)
 
         return init_pop
@@ -112,7 +121,6 @@ class RobotLearner:
 
     @trollius.coroutine
     def insert_brain(self, brain_genotype):
-        print "inserting brain now"
         pb_robot = self.robot.tree.to_robot()
         pb_body = pb_robot.body
         pb_brain = self.nn_parser.genotype_to_brain(brain_genotype)
@@ -155,6 +163,10 @@ class RobotLearner:
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
 
+            # execute callback:
+            if self.on_evaluation_finished is not None:
+                self.on_evaluation_finished()
+
             # if all brains are evaluated, produce new generation:
             if self.evaluation_queue.empty():
                 self.produce_new_generation()
@@ -162,7 +174,6 @@ class RobotLearner:
 
             # else continue evaluating brains from the queue:
             else:
-                print "loading new brain"
                 next_brain = self.evaluation_queue.get()
                 yield From(self.activate_brain(next_brain))
 
@@ -181,8 +192,27 @@ class RobotLearner:
 
     def produce_new_generation(self):
         brain_fitness_list = [(br, fit) for br, fit in self.brain_fitness.iteritems()]
-        best_brains = sorted(brain_fitness_list, key = lambda elem: elem[1], reverse = True)[:self.pop_size]
 
+        # do not store information about old generations:
+        self.brain_fitness.clear()
+
+        parent_pairs = []
+        # select parents:
+        for _ in range(self.pop_size):
+            selected = self.select_for_tournament(brain_fitness_list)
+            parent_a = selected[0]
+            parent_b = selected[1]
+
+            # first in pair must be the best of two:
+            parent_pairs.append((parent_a[0], parent_b[0]))
+
+        for pair in parent_pairs:
+            child_genotype = Crossover.crossover(pair[0], pair[1])
+            self.evaluation_queue.put(child_genotype)
+
+
+    def select_for_tournament(self, candidates):
+        selected = sorted([random.sample(candidates, self.tournament_size)], key = lambda elem: elem[1], reverse=True)
 
 
     # this method should be called when the learning is over to get a robot with the best brain
@@ -197,3 +227,11 @@ class RobotLearner:
     def robot_to_genotype(self, robot):
         pb_robot = robot.tree.to_robot()
         return self.nn_parser.brain_to_genotype(pb_robot.brain, self.mutator)
+
+
+
+    def to_string(self):
+        """
+        output information about genotypes and their fitnesses for logging purposes
+        """
+#        neuron_genes, conn_genes =

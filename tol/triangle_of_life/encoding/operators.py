@@ -99,7 +99,8 @@ class Mutator:
 
 class Crossover:
 
-    def crossover(self, genotype_more_fit, genotype_less_fit):
+    @staticmethod
+    def crossover(genotype_more_fit, genotype_less_fit):
 
         # sort genes by historical marks:
         genes_better = sorted(genotype_more_fit.neuron_genes + genotype_more_fit.connection_genes,

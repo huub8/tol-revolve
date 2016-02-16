@@ -4,6 +4,9 @@ import sys
 import logging
 import argparse
 import math
+import csv
+import logging
+import shutil
 
 from revolve.build.util import in_cm, in_mm
 from revolve.util import Time
@@ -158,89 +161,141 @@ body:
 
 '''
 
+
+class LearningManager(World):
+    def __init__(self, conf, _private):
+        super(LearningManager, self).__init__(conf, _private)
+
+        self.fitness_filename = None
+        self.fitness_file = None
+        self.write_fitness = None
+
+        if self.output_directory:
+            self.fitness_filename = os.path.join(self.output_directory, 'fitness.csv')
+
+            if self.do_restore:
+                shutil.copy(self.fitness_filename + '.snapshot', self.fitness_filename)
+                self.fitness_file = open(self.fitness_filename, 'ab', buffering=1)
+                self.write_fitness = csv.writer(self.fitness_file, delimiter=',')
+            else:
+                self.fitness_file = open(self.fitness_filename, 'wb', buffering=1)
+                self.write_fitness = csv.writer(self.fitness_file, delimiter=',')
+                self.write_fitness.writerow(['t_sim', 'robot_id', 'age', 'displacement',
+                                             'vel', 'dvel', 'fitness'])
+
+
+    @classmethod
+    @trollius.coroutine
+    def create(cls, conf):
+        """
+        Coroutine to instantiate a Revolve.Angle WorldManager
+        :param conf:
+        :return:
+        """
+        self = cls(_private=cls._PRIVATE, conf=conf)
+        yield From(self._init())
+        raise Return(self)
+
+
+    @trollius.coroutine
+    def create_snapshot(self):
+        """
+        Copy the fitness file in the snapshot
+        :return:
+        """
+        ret = yield From(super(LearningManager, self).create_snapshot())
+        if not ret:
+            raise Return(ret)
+
+        self.fitness_file.flush()
+        shutil.copy(self.fitness_filename, self.fitness_filename + '.snapshot')
+
+
+    @trollius.coroutine
+    def get_snapshot_data(self):
+        data = yield From(super(LearningManager, self).get_snapshot_data())
+        data['learners'] = self.learner_list
+        raise Return(data)
+
+
+    def add_learner(self, learner):
+        self.learner_list.append(learner)
+
+
+    @trollius.coroutine
+    def run(self, conf):
+     #   conf.proposal_threshold = 0
+     #   conf.output_directory = None
+        conf.min_parts = 1
+        conf.max_parts = 3
+        conf.arena_size = (3, 3)
+        conf.max_lifetime = 99999
+        conf.initial_age_mu = 99999
+        conf.initial_age_sigma = 1
+        conf.age_cutoff = 99999
+
+        conf.pose_update_frequency = 20
+
+        bot_yaml = spider_yaml
+
+        print "WORLD CREATED"
+
+        body_spec = get_body_spec(conf)
+        brain_spec = get_brain_spec(conf)
+
+        mutator = Mutator()
+        pose = Pose(position=Vector3(0, 0, 0))
+
+        bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
+        tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
+
+        robot = yield From(wait_for(self.insert_robot(tree, pose)))
+
+        print("new robot id = %d" % robot.robot.id)
+
+        learner = RobotLearner(world=self,
+                               robot=robot,
+                               body_spec=body_spec,
+                               brain_spec=brain_spec,
+                               mutator=mutator,
+                               population_size=pop_size,
+                               evaluation_time=10, # simulation seconds
+                               max_num_generations=1000)
+
+        # Request callback for the subscriber
+        def callback(data):
+            req = Request()
+            req.ParseFromString(data)
+
+
+        subscriber = self.manager.subscribe(
+            '/gazebo/default/request', 'gazebo.msgs.Request', callback)
+        yield From(subscriber.wait_for_connection())
+
+#    deltaT = 0.01
+
+        # run loop:
+        while True:
+            result = yield From(learner.update())
+            if result:
+                break
+
+    #        yield From(trollius.sleep(deltaT))
+
+
 @trollius.coroutine
-def run_server(conf):
-    """
-
-    :param args:
-    :return:
-    """
- #   conf.proposal_threshold = 0
- #   conf.output_directory = None
-    conf.min_parts = 1
-    conf.max_parts = 3
-    conf.arena_size = (3, 3)
-    conf.max_lifetime = 99999
-    conf.initial_age_mu = 99999
-    conf.initial_age_sigma = 1
-    conf.age_cutoff = 99999
-
-    conf.pose_update_frequency = 20
-
-
-    # initialize world:
-    world = yield From(World.create(conf))
+def run():
+    conf = parser.parse_args()
+    world = yield From(LearningManager.create(conf))
     yield From(world.pause(False))
+    yield From(world.run(conf))
 
-    bot_yaml = spider_yaml
-
-    print "WORLD CREATED"
-
-    body_spec = get_body_spec(conf)
-    brain_spec = get_brain_spec(conf)
-
-    mutator = Mutator()
-    pose = Pose(position=Vector3(0, 0, 0))
-
-    bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
-    tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
-
-    robot = yield From(wait_for(world.insert_robot(tree, pose)))
-
-    print("new robot id = %d" %robot.robot.id)
-
-    learner = RobotLearner(world=world,
-                           robot=robot,
-                           body_spec=body_spec,
-                           brain_spec=brain_spec,
-                           mutator=mutator,
-                           population_size=pop_size,
-                           evaluation_time=10, # simulation seconds
-                           max_num_generations=1000)
-
-    # Request callback for the subscriber
-    def callback(data):
-        req = Request()
-        req.ParseFromString(data)
-
-
-    subscriber = world.manager.subscribe(
-        '/gazebo/default/request', 'gazebo.msgs.Request', callback)
-    yield From(subscriber.wait_for_connection())
-
-
-
-
-    deltaT = 0.01
-
-    # run loop:
-    while True:
-        result = yield From(learner.update())
-        if result:
-            break
-
-        yield From(trollius.sleep(deltaT))
 
 
 
 def main():
 
     print "START"
-
-    args = parser.parse_args()
-    seed = random.randint(1, 1000000) if args.seed < 0 else args.seed
-    random.seed(seed)
-    print("Seed: %d" % seed)
 
     def handler(loop, context):
         exc = context['exception']
@@ -250,23 +305,12 @@ def main():
 
         raise context['exception']
 
-
-
     try:
-
         loop = trollius.get_event_loop()
-
         loop.set_debug(enabled=True)
 #        logging.basicConfig(level=logging.DEBUG)
-
         loop.set_exception_handler(handler)
-        loop.run_until_complete(run_server(args))
-
-        # run = run_server(args)
-        # run.next()
-        # while True:
-        #     run.next()
-
+        loop.run_until_complete(run())
         print "FINISH"
 
     except KeyboardInterrupt:
