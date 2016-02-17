@@ -169,6 +169,7 @@ class LearningManager(World):
         self.fitness_filename = None
         self.fitness_file = None
         self.write_fitness = None
+        self.learner_list = []
 
         if self.output_directory:
             self.fitness_filename = os.path.join(self.output_directory, 'fitness.csv')
@@ -218,76 +219,84 @@ class LearningManager(World):
         raise Return(data)
 
 
+    def restore_snapshot(self, data):
+        yield From(super(LearningManager, self).restore_snapshot(data))
+        self.learner_list = data['learners']
+
+
     def add_learner(self, learner):
         self.learner_list.append(learner)
 
 
     @trollius.coroutine
     def run(self, conf):
-     #   conf.proposal_threshold = 0
-     #   conf.output_directory = None
-        conf.min_parts = 1
-        conf.max_parts = 3
-        conf.arena_size = (3, 3)
-        conf.max_lifetime = 99999
-        conf.initial_age_mu = 99999
-        conf.initial_age_sigma = 1
-        conf.age_cutoff = 99999
 
-        conf.pose_update_frequency = 20
+        yield From(self.pause(False))
 
-        bot_yaml = spider_yaml
+        if not self.do_restore:
+            bot_yaml = spider_yaml
 
-        print "WORLD CREATED"
+            body_spec = get_body_spec(conf)
+            brain_spec = get_brain_spec(conf)
 
-        body_spec = get_body_spec(conf)
-        brain_spec = get_brain_spec(conf)
+            mutator = Mutator()
+            pose = Pose(position=Vector3(0, 0, 0))
 
-        mutator = Mutator()
-        pose = Pose(position=Vector3(0, 0, 0))
+            bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
+            tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
 
-        bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
-        tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
+            robot = yield From(wait_for(self.insert_robot(tree, pose)))
 
-        robot = yield From(wait_for(self.insert_robot(tree, pose)))
+            print("new robot id = %d" % robot.robot.id)
 
-        print("new robot id = %d" % robot.robot.id)
+            learner = RobotLearner(world=self,
+                                   robot=robot,
+                                   body_spec=body_spec,
+                                   brain_spec=brain_spec,
+                                   mutator=mutator,
+                                   population_size=pop_size,
+                                   evaluation_time=10, # simulation seconds
+                                   max_num_generations=1000)
 
-        learner = RobotLearner(world=self,
-                               robot=robot,
-                               body_spec=body_spec,
-                               brain_spec=brain_spec,
-                               mutator=mutator,
-                               population_size=pop_size,
-                               evaluation_time=10, # simulation seconds
-                               max_num_generations=1000)
+            # add callback for finished evaluation (not sure if this will work):
+            learner.on_evaluation_finished = self.create_snapshot()
+            self.add_learner(learner)
+        else:
+            print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
+            print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
+
 
         # Request callback for the subscriber
         def callback(data):
             req = Request()
             req.ParseFromString(data)
 
-
         subscriber = self.manager.subscribe(
             '/gazebo/default/request', 'gazebo.msgs.Request', callback)
         yield From(subscriber.wait_for_connection())
 
-#    deltaT = 0.01
-
         # run loop:
         while True:
-            result = yield From(learner.update())
-            if result:
-                break
+            for learner in self.learner_list:
+                result = yield From(learner.update())
 
-    #        yield From(trollius.sleep(deltaT))
 
 
 @trollius.coroutine
 def run():
     conf = parser.parse_args()
+    conf.min_parts = 1
+    conf.max_parts = 3
+    conf.arena_size = (3, 3)
+    conf.max_lifetime = 99999
+    conf.initial_age_mu = 99999
+    conf.initial_age_sigma = 1
+    conf.age_cutoff = 99999
+    conf.pose_update_frequency = 20
+
     world = yield From(LearningManager.create(conf))
-    yield From(world.pause(False))
+
+    print "WORLD CREATED"
     yield From(world.run(conf))
 
 
