@@ -69,10 +69,15 @@ class NeuralNetworkParser:
                 pb_neuron.layer = neuron_info.layer
                 pb_neuron.type = neuron_info.neuron_type
                 pb_neuron.partId = neuron_info.body_part_id
-
-                for key, value in neuron_info.neuron_params.items():
-                    param = pb_neuron.param.add()
-                    param.value = value
+				
+				serialized_params = self.spec.serialize_params(neuron_info.neuron_params)
+				for param_value in serialized_params:
+					param = pb_neuron.param.add()
+                    param.value = param_value
+					
+   #             for key, value in neuron_info.neuron_params.items():
+   #                 param = pb_neuron.param.add()
+   #                 param.value = value
 
 
     def _parse_connection_genes(self, genotype, brain, neuron_map):
