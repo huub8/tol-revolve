@@ -6,10 +6,26 @@ from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron
 
 class Mutator:
 
-    def __init__(self, new_connection_sigma = 1, innovation_number = 0, max_attempts = 100):
+    def __init__(self, brain_spec, new_connection_sigma = 1, innovation_number = 0, max_attempts = 100):
         self.innovation_number = innovation_number
         self.new_connection_sigma = new_connection_sigma
         self.max_attempts = max_attempts
+        self.brain_spec = brain_spec
+
+
+    def mutate_neuron_params(self, genotype, probability):
+        """
+        Each neuron gene is chosen to be mutated with probability.
+        The parameter to be mutated is chosen from the set of parameters with equal probability.
+        """
+        for neuron_gene in genotype.neuron_genes:
+            if random.random() < probability:
+                random_param_values = self.brain_spec[neuron_gene.neuron.neuron_type].\
+                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
+
+                param_name, param_value = random.choice(random_param_values.items()) # choose one param to mutate
+                neuron_gene.neuron.neuron_params[param_name] = param_value
+
 
     def mutate_weights(self, genotype, probability, sigma):
 

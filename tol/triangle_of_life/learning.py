@@ -113,6 +113,7 @@ class RobotLearner:
             mutated_genotype = init_genotype.copy()
 
             self.mutator.mutate_weights(genotype=mutated_genotype, probability=0.2, sigma=1)
+            self.mutator.mutate_neuron_params(genotype=mutated_genotype, probability=0.2)
         # TODO mutate_neuron_params()
             init_pop.append(mutated_genotype)
 
@@ -207,7 +208,15 @@ class RobotLearner:
             parent_pairs.append((parent_a[0], parent_b[0]))
 
         for pair in parent_pairs:
+
+            # apply crossover:
             child_genotype = Crossover.crossover(pair[0], pair[1])
+
+            # apply mutations:
+            self.mutator.mutate_weights(genotype=child_genotype, probability=0.2, sigma=1)
+            self.mutator.mutate_neuron_params(genotype=child_genotype, probability=0.2)
+            self.mutator.mutate_structure(genotype=child_genotype, probability=0.1)
+
             self.evaluation_queue.put(child_genotype)
 
 
