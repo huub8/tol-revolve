@@ -46,13 +46,6 @@ from tol.triangle_of_life.convert import NeuralNetworkParser
 output_console()
 logger.setLevel(logging.DEBUG)
 
-
-parser.add_argument("-s", "--seed", default=-1, help="Supply a random seed", type=int)
-parser.add_argument("-n", "--num-initial-bots", default=3,
-                    help="Number of initial bots", type=int)
-parser.add_argument("-f", "--fast", help="Short reproduction wait.",
-                    action="store_true")
-
 parent_color = (1, 0, 0, 0.5)
 child_color = (0, 1, 0, 0.5)
 
