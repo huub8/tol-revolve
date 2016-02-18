@@ -1,0 +1,5 @@
+#!/bin/bash
+# Start learning test with one robot with supervisor.
+
+python start.py --output-directory output --restore-directory restore
+

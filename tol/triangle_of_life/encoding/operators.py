@@ -18,13 +18,51 @@ class Mutator:
         Each neuron gene is chosen to be mutated with probability.
         The parameter to be mutated is chosen from the set of parameters with equal probability.
         """
+
+        # # FOR DEBUG
+        # #########################################
+        # print "before mutation:"
+        # print genotype.debug_string()
+        # ##########################################
+
+
+
         for neuron_gene in genotype.neuron_genes:
             if random.random() < probability:
-                random_param_values = self.brain_spec[neuron_gene.neuron.neuron_type].\
-                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
 
-                param_name, param_value = random.choice(random_param_values.items()) # choose one param to mutate
-                neuron_gene.neuron.neuron_params[param_name] = param_value
+                # # FOR DEBUG
+                # ##################################
+                # print 'mutating gene :{0}'.format(neuron_gene.neuron.neuron_id)
+                # ##################################
+
+                random_param_values = self.brain_spec.get(neuron_gene.neuron.neuron_type).\
+                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
+                if random_param_values:
+                    param_name, param_value = random.choice(random_param_values.items()) # choose one param to mutate
+
+                    # # FOR DEBUG
+                    # ##################################
+                    # print 'mutating param :{0} -- new value = {1}'.format(param_name, param_value)
+                    # ##################################
+
+
+                    neuron_gene.neuron.neuron_params[param_name] = param_value
+
+                # else:
+                #    # # FOR DEBUG
+                #    #  ##################################
+                #    #  print 'no params'
+                #    #  ##################################
+
+
+        # # FOR DEBUG
+        # #########################################
+        # print "after mutation:"
+        # print genotype.debug_string()
+        # ##########################################
+
+
+
 
 
     def mutate_weights(self, genotype, probability, sigma):
@@ -117,6 +155,9 @@ class Crossover:
 
     @staticmethod
     def crossover(genotype_more_fit, genotype_less_fit):
+        # copy original genotypes to keep them intact:
+        genotype_more_fit = genotype_more_fit.copy()
+        genotype_less_fit = genotype_less_fit.copy()
 
         # sort genes by historical marks:
         genes_better = sorted(genotype_more_fit.neuron_genes + genotype_more_fit.connection_genes,

@@ -15,7 +15,7 @@ from pygazebo.pygazebo import DisconnectError
 from trollius.py33_exceptions import ConnectionResetError, ConnectionRefusedError
 
 # Add "tol" directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/../')
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/../../')
 
 # Trollius / Pygazebo
 import trollius
@@ -51,7 +51,9 @@ child_color = (0, 1, 0, 0.5)
 
 
 # braim population size:
-pop_size = 10
+pop_size = 3
+
+tournament_size = 2
 
 
 spider_yaml = '''
@@ -232,7 +234,7 @@ class LearningManager(World):
             body_spec = get_body_spec(conf)
             brain_spec = get_brain_spec(conf)
 
-            mutator = Mutator()
+            mutator = Mutator(brain_spec)
             pose = Pose(position=Vector3(0, 0, 0))
 
             bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
@@ -248,11 +250,12 @@ class LearningManager(World):
                                    brain_spec=brain_spec,
                                    mutator=mutator,
                                    population_size=pop_size,
+                                   tournament_size=tournament_size,
                                    evaluation_time=10, # simulation seconds
                                    max_num_generations=1000)
 
-            # add callback for finished evaluation (not sure if this will work):
-            learner.on_evaluation_finished = self.create_snapshot()
+       #     # add callback for finished evaluation (not sure if this will work):
+       #     learner.on_evaluation_finished = self.create_snapshot()
             self.add_learner(learner)
         else:
             print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)

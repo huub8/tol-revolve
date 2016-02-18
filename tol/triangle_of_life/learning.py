@@ -52,21 +52,6 @@ class RobotLearner:
 
         brain_population = self.get_init_brains()
 
-        # FOR DEBUG
-        ##########################################
-        for br in brain_population:
-            print "neurons:"
-            n_gs, c_gs = br.to_lists()
-            for n_g in n_gs:
-                print n_g
-            print "connections:"
-            for c_g in c_gs:
-                print c_g
-            print ""
-            print ""
-        ##########################################
-
-
         self.evaluation_queue = Queue()
 
         for br in brain_population:
@@ -80,7 +65,7 @@ class RobotLearner:
         self.generation_number = 0
         self.max_generations = max_num_generations
 
-        self.on_evaluation_finished = None
+  #      self.on_evaluation_finished = None
 
 
     @trollius.coroutine
@@ -92,29 +77,13 @@ class RobotLearner:
     def get_init_brains(self):
         init_genotype = self.robot_to_genotype(self.robot)
 
-        # FOR DEBUG
-        #########################################
-        print "initial brain:"
-
-        n_gs, c_gs = init_genotype.to_lists()
-        print "neurons:"
-        for n_g in n_gs:
-            print n_g
-        print "connections:"
-        for c_g in c_gs:
-            print c_g
-        print ""
-        print ""
-        ##########################################
-
-
         init_pop = []
         for _ in range(self.pop_size):
             mutated_genotype = init_genotype.copy()
 
             self.mutator.mutate_weights(genotype=mutated_genotype, probability=0.2, sigma=1)
+
             self.mutator.mutate_neuron_params(genotype=mutated_genotype, probability=0.2)
-        # TODO mutate_neuron_params()
             init_pop.append(mutated_genotype)
 
         return init_pop
@@ -164,9 +133,8 @@ class RobotLearner:
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
 
-            # execute callback:
-            if self.on_evaluation_finished is not None:
-                self.on_evaluation_finished()
+     #       # make snapshot:
+            yield From(self.world.create_snapshot())
 
             # if all brains are evaluated, produce new generation:
             if self.evaluation_queue.empty():

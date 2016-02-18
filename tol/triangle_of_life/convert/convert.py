@@ -70,9 +70,9 @@ class NeuralNetworkParser:
                 pb_neuron.type = neuron_info.neuron_type
                 pb_neuron.partId = neuron_info.body_part_id
 				
-				serialized_params = self.spec.serialize_params(neuron_info.neuron_params)
-				for param_value in serialized_params:
-					param = pb_neuron.param.add()
+                serialized_params = self.spec.serialize_params(neuron_info.neuron_params)
+                for param_value in serialized_params:
+                    param = pb_neuron.param.add()
                     param.value = param_value
 					
    #             for key, value in neuron_info.neuron_params.items():

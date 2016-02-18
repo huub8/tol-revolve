@@ -1,3 +1,4 @@
+from copy import copy, deepcopy
 
 class Neuron:
     """
@@ -12,11 +13,11 @@ class Neuron:
         self.neuron_params = neuron_params
 
     def copy(self):
-        copy_neuron = Neuron(neuron_id=self.neuron_id,
-                             layer=self.layer,
-                             neuron_type=self.neuron_type,
-                             body_part_id=self.body_part_id,
-                             neuron_params=self.neuron_params)
+        copy_neuron = Neuron(neuron_id=copy(self.neuron_id),
+                             layer=copy(self.layer),
+                             neuron_type=copy(self.neuron_type),
+                             body_part_id=copy(self.body_part_id),
+                             neuron_params=deepcopy(self.neuron_params))
         return copy_neuron
 
 
@@ -108,6 +109,21 @@ class GeneticEncoding:
             })
 
         return neuron_list, conn_list
+
+
+    def debug_string(self):
+        deb_str = ""
+        n_gs, c_gs = self.to_lists()
+        deb_str += "neurons:\n"
+        for n_g in n_gs:
+            deb_str += str(n_g)
+            deb_str += "\n"
+        deb_str += "connections:\n"
+        for c_g in c_gs:
+            deb_str += str(c_g)
+            deb_str += "\n"
+
+        return deb_str
 
 
     def copy(self):
