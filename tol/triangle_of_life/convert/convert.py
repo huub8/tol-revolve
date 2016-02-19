@@ -1,20 +1,8 @@
-import math
-import random
-import trollius
-from trollius import From, Return, Future
-
-# sdfbuilder
-from sdfbuilder.math import Vector3
-from sdfbuilder import Pose, Model, Link, SDF
-
 # Revolve
-from revolve.spec import BodyImplementation, NeuralNetImplementation
 from revolve.spec.msgs import Body, BodyPart, NeuralNetwork
+from revolve.spec.exception import err
 
 # ToL
-from ...config import parser
-from ...manage import World
-from ...logging import logger, output_console
 from ..encoding import GeneticEncoding, Neuron
 
 class NeuralNetworkParser:
@@ -47,8 +35,6 @@ class NeuralNetworkParser:
 
 
     def genotype_to_brain(self, genotype):
-        neuron_genes = genotype.neuron_genes
-        connection_genes = genotype.connection_genes
 
         brain = NeuralNetwork()
 
@@ -63,14 +49,15 @@ class NeuralNetworkParser:
             if neuron_gene.enabled:
                 neuron_info = neuron_gene.neuron
                 neuron_map[neuron_info] = neuron_info.neuron_id
-                pb_neuron = brain.neuron.add()
 
+                pb_neuron = brain.neuron.add()
                 pb_neuron.id = neuron_info.neuron_id
                 pb_neuron.layer = neuron_info.layer
                 pb_neuron.type = neuron_info.neuron_type
                 pb_neuron.partId = neuron_info.body_part_id
-				
-                serialized_params = self.spec.serialize_params(neuron_info.neuron_params)
+
+                neuron_spec = self.spec.get(neuron_info.neuron_type)
+                serialized_params = neuron_spec.serialize_params(neuron_info.neuron_params)
                 for param_value in serialized_params:
                     param = pb_neuron.param.add()
                     param.value = param_value
@@ -78,6 +65,7 @@ class NeuralNetworkParser:
    #             for key, value in neuron_info.neuron_params.items():
    #                 param = pb_neuron.param.add()
    #                 param.value = value
+        return neuron_map
 
 
     def _parse_connection_genes(self, genotype, brain, neuron_map):
@@ -104,10 +92,10 @@ class NeuralNetworkParser:
             if neuron_id in neuron_map:
                 err("Duplicate neuron ID '%s'" % neuron_id)
 
-            spec = self.spec.get(neuron_type)
-            if spec is None:
+            neuron_spec = self.spec.get(neuron_type)
+            if neuron_spec is None:
                 err("Unknown neuron type '%s'" % neuron_type)
-            neuron_params = spec.unserialize_params(neuron.param)
+            neuron_params = neuron_spec.unserialize_params(neuron.param)
 
 
             neuron_map[neuron_id] = Neuron(

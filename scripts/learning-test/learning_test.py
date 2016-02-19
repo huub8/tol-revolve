@@ -51,7 +51,7 @@ child_color = (0, 1, 0, 0.5)
 
 
 # braim population size:
-pop_size = 3
+pop_size = 5
 
 tournament_size = 2
 
@@ -165,6 +165,12 @@ class LearningManager(World):
         self.fitness_file = None
         self.write_fitness = None
         self.learner_list = []
+        self.learner_data = []
+
+
+        self.body_spec = get_body_spec(conf)
+        self.brain_spec = get_brain_spec(conf)
+        self.mutator = Mutator(self.brain_spec)
 
         if self.output_directory:
             self.fitness_filename = os.path.join(self.output_directory, 'fitness.csv')
@@ -210,13 +216,17 @@ class LearningManager(World):
     @trollius.coroutine
     def get_snapshot_data(self):
         data = yield From(super(LearningManager, self).get_snapshot_data())
-        data['learners'] = self.learner_list
+        for learner in self.learner_list:
+            self.learner_data.append(learner.pack_data())
+        data['learners'] = self.learner_data
+        data['innovation_number'] = self.mutator.innovation_number
         raise Return(data)
 
 
     def restore_snapshot(self, data):
         yield From(super(LearningManager, self).restore_snapshot(data))
-        self.learner_list = data['learners']
+        self.learner_data = data['learners']
+        self.mutator.innovation_number = data['innovation_number']
 
 
     def add_learner(self, learner):
@@ -227,40 +237,39 @@ class LearningManager(World):
     def run(self, conf):
 
         yield From(self.pause(False))
+  #      yield From(self.pause(True))
 
-        if not self.do_restore:
-            bot_yaml = spider_yaml
+        print "### time now is {0}".format(self.last_time)
 
-            body_spec = get_body_spec(conf)
-            brain_spec = get_brain_spec(conf)
 
-            mutator = Mutator(brain_spec)
-            pose = Pose(position=Vector3(0, 0, 0))
+        bot_yaml = spider_yaml
+        pose = Pose(position=Vector3(0, 0, 0))
+        bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
+        tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
 
-            bot = yaml_to_robot(body_spec, brain_spec, bot_yaml)
-            tree = Tree.from_body_brain(bot.body, bot.brain, body_spec)
+        robot = yield From(wait_for(self.insert_robot(tree, pose)))
+        print("new robot id = %d" % robot.robot.id)
 
-            robot = yield From(wait_for(self.insert_robot(tree, pose)))
-
-            print("new robot id = %d" % robot.robot.id)
-
-            learner = RobotLearner(world=self,
+        learner = RobotLearner(world=self,
                                    robot=robot,
-                                   body_spec=body_spec,
-                                   brain_spec=brain_spec,
-                                   mutator=mutator,
+                                   body_spec=self.body_spec,
+                                   brain_spec=self.brain_spec,
+                                   mutator=self.mutator,
                                    population_size=pop_size,
                                    tournament_size=tournament_size,
-                                   evaluation_time=10, # simulation seconds
+                                   evaluation_time=2, # simulation seconds
                                    max_num_generations=1000)
 
-       #     # add callback for finished evaluation (not sure if this will work):
-       #     learner.on_evaluation_finished = self.create_snapshot()
-            self.add_learner(learner)
-        else:
+        if self.do_restore:
+            yield From(learner.initialize(world=self, data=self.learner_data[0]))
+
             print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
             print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
+        else:
+            yield From(learner.initialize(world=self))
 
+
+        self.add_learner(learner)
 
         # Request callback for the subscriber
         def callback(data):
@@ -274,7 +283,7 @@ class LearningManager(World):
         # run loop:
         while True:
             for learner in self.learner_list:
-                result = yield From(learner.update())
+                result = yield From(learner.update(self))
 
 
 
