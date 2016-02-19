@@ -1,11 +1,24 @@
+from copy import copy, deepcopy
 
 class Neuron:
+    """
+    This is all the info about a neuron
+    """
+
     def __init__(self, neuron_id, layer, neuron_type, body_part_id, neuron_params):
         self.neuron_id = neuron_id
         self.layer = layer
         self.neuron_type = neuron_type
         self.body_part_id = body_part_id
         self.neuron_params = neuron_params
+
+    def copy(self):
+        copy_neuron = Neuron(neuron_id=copy(self.neuron_id),
+                             layer=copy(self.layer),
+                             neuron_type=copy(self.neuron_type),
+                             body_part_id=copy(self.body_part_id),
+                             neuron_params=deepcopy(self.neuron_params))
+        return copy_neuron
 
 
 
@@ -82,7 +95,8 @@ class GeneticEncoding:
                 "enabled": neuron_gene.enabled,
                 "id": neuron.neuron_id,
                 "layer": neuron.layer,
-                "type": neuron.neuron_type
+                "type": neuron.neuron_type,
+                "params": neuron.neuron_params
             })
 
         conn_list = []
@@ -95,4 +109,45 @@ class GeneticEncoding:
             })
 
         return neuron_list, conn_list
+
+
+    def debug_string(self):
+        deb_str = ""
+        n_gs, c_gs = self.to_lists()
+        deb_str += "neurons:\n"
+        for n_g in n_gs:
+            deb_str += str(n_g)
+            deb_str += "\n"
+        deb_str += "connections:\n"
+        for c_g in c_gs:
+            deb_str += str(c_g)
+            deb_str += "\n"
+
+        return deb_str
+
+
+    def copy(self):
+        copy_gen = GeneticEncoding()
+        old_to_new = {}
+
+        for n_gene in self.neuron_genes:
+
+            new_n_gene = NeuronGene(
+                    neuron=n_gene.neuron.copy(),
+                    innovation_number=n_gene.historical_mark,
+                    enabled=n_gene.enabled)
+
+            old_to_new[n_gene] = new_n_gene
+            copy_gen.add_neuron_gene(new_n_gene)
+
+        for c_gene in self.connection_genes:
+            new_c_gene = ConnectionGene(
+                    neuron_from=old_to_new[c_gene.neuron_from],
+                    neuron_to= old_to_new[c_gene.neuron_to],
+                    weight=c_gene.weight,
+                    innovation_number=c_gene.historical_mark,
+                    enabled=c_gene.enabled)
+            copy_gen.add_connection_gene(new_c_gene)
+
+        return copy_gen
 

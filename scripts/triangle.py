@@ -240,7 +240,7 @@ def run_server(conf):
 
 
     # spawn initial population of robots:
-    yield From(accounts.spawn_initial_given_robots(conf, init_pop_size, snake_yaml))
+    yield From(accounts.spawn_initial_given_robots(conf, init_pop_size, spider_yaml))
 
     yield From(world.pause(False))
     print "WORLD UNPAUSED"

@@ -1,77 +1,110 @@
-import math
-import random
-import trollius
-from trollius import From, Return, Future
-
-# Revolve / sdfbuilder
-from sdfbuilder.math import Vector3
-from sdfbuilder import Pose, Model, Link, SDF
+# Revolve
+from revolve.spec.msgs import Body, BodyPart, NeuralNetwork
+from revolve.spec.exception import err
 
 # ToL
-from ...config import parser
-from ...manage import World
-from ...logging import logger, output_console
-
 from ..encoding import GeneticEncoding, Neuron
 
 class NeuralNetworkParser:
 
     def __init__(self, spec):
         self.spec = spec
-        self.neurons = {}
 
 
-    def robot_to_genotype(self, robot, mutator):
-        """
-        :type robot: revolve.angle.Robot
-        """
+    def brain_to_genotype(self, pb_brain, mutator):
 
-  #      pb_brain = robot.tree.to_robot().brain
-        pb_brain = robot.brain
         pb_neurons = pb_brain.neuron
         pb_connections = pb_brain.connection
 
-        self._parse_neurons(pb_neurons)
+        neuron_map = self._parse_neurons(pb_neurons)
         connection_descriptions = self._parse_connections(pb_connections)
 
         genotype = GeneticEncoding()
 
-        for neuron_id, neuron in self.neurons.items():
+        for neuron_id, neuron in neuron_map.items():
             mutator.add_neuron(neuron, genotype)
 
         for connection in connection_descriptions:
             mutator.add_connection(
-                neuron_from=self.neurons[connection["src"]],
-                neuron_to=self.neurons[connection["dst"]] ,
+                neuron_from=neuron_map[connection["src"]],
+                neuron_to=neuron_map[connection["dst"]] ,
                 weight=connection["weight"],
                 genotype=genotype
             )
         return genotype
 
 
+    def genotype_to_brain(self, genotype):
+
+        brain = NeuralNetwork()
+
+        neuron_map = self._parse_neuron_genes(genotype, brain)
+        self._parse_connection_genes(genotype, brain, neuron_map)
+        return brain
+
+
+    def _parse_neuron_genes(self, genotype, brain):
+        neuron_map = {}
+        for neuron_gene in genotype.neuron_genes:
+            if neuron_gene.enabled:
+                neuron_info = neuron_gene.neuron
+                neuron_map[neuron_info] = neuron_info.neuron_id
+
+                pb_neuron = brain.neuron.add()
+                pb_neuron.id = neuron_info.neuron_id
+                pb_neuron.layer = neuron_info.layer
+                pb_neuron.type = neuron_info.neuron_type
+                pb_neuron.partId = neuron_info.body_part_id
+
+                neuron_spec = self.spec.get(neuron_info.neuron_type)
+                serialized_params = neuron_spec.serialize_params(neuron_info.neuron_params)
+                for param_value in serialized_params:
+                    param = pb_neuron.param.add()
+                    param.value = param_value
+					
+   #             for key, value in neuron_info.neuron_params.items():
+   #                 param = pb_neuron.param.add()
+   #                 param.value = value
+        return neuron_map
+
+
+    def _parse_connection_genes(self, genotype, brain, neuron_map):
+        for conn_gene in genotype.connection_genes:
+            if conn_gene.enabled:
+                from_id = neuron_map[conn_gene.neuron_from]
+                to_id = neuron_map[conn_gene.neuron_to]
+                weight = conn_gene.weight
+                pb_conn = brain.connection.add()
+                pb_conn.src = from_id
+                pb_conn.dst = to_id
+                pb_conn.weight = weight
+
 
     def _parse_neurons(self, pb_neurons):
+        neuron_map = {}
         for neuron in pb_neurons:
             neuron_id = neuron.id
             neuron_layer = neuron.layer
             neuron_type = neuron.type
             neuron_part_id = neuron.partId
 
-            if neuron_id in self.neurons:
+
+            if neuron_id in neuron_map:
                 err("Duplicate neuron ID '%s'" % neuron_id)
 
-            spec = self.spec.get(neuron_type)
-            if spec is None:
+            neuron_spec = self.spec.get(neuron_type)
+            if neuron_spec is None:
                 err("Unknown neuron type '%s'" % neuron_type)
-            neuron_params = spec.unserialize_params(neuron.param)
+            neuron_params = neuron_spec.unserialize_params(neuron.param)
 
 
-            self.neurons[neuron_id] = Neuron(
+            neuron_map[neuron_id] = Neuron(
                 neuron_id=neuron_id,
                 layer=neuron_layer,
                 neuron_type=neuron_type,
                 body_part_id=neuron_part_id,
                 neuron_params=neuron_params)
+        return neuron_map
 
 
     def _parse_connections(self, pb_connections):
@@ -84,3 +117,5 @@ class NeuralNetworkParser:
             })
 
         return conn_descriptions
+
+
