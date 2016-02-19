@@ -90,10 +90,13 @@ class Mutator:
         """
 
         if random.random() < probability:
-            if random.random() < 0.5:
+            if len(genotype.connection_genes) == 0:
                 self.add_connection_mutation(genotype, self.new_connection_sigma)
             else:
-                self.add_neuron_mutation(genotype)
+                if random.random() < 0.5:
+                    self.add_connection_mutation(genotype, self.new_connection_sigma)
+                else:
+                    self.add_neuron_mutation(genotype)
 
 
     def add_connection_mutation(self, genotype, sigma):
@@ -116,7 +119,7 @@ class Mutator:
 
 
     def add_neuron_mutation(self, genotype):
-        connection_to_split = random.choice(genotype)
+        connection_to_split = random.choice(genotype.connection_genes)
         old_weight = connection_to_split.weight
         connection_to_split.enabled = False
 

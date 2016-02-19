@@ -73,8 +73,14 @@ class RobotLearner:
 
     @trollius.coroutine
     def activate_brain(self, world, brain):
+
+        # pause world:
+        yield From(world.pause(True))
         self.active_brain = brain
         yield From(self.insert_brain(world, brain))
+
+        # unpause world:
+        yield From(world.pause(False))
 
 
     def get_init_brains(self):
@@ -177,7 +183,6 @@ class RobotLearner:
             selected = self.select_for_tournament(brain_fitness_list)
 
             print "selected:", selected
-            print "parents list:", brain_fitness_list
             parent_a = selected[0]
             parent_b = selected[1]
 

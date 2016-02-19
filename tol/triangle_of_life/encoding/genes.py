@@ -32,6 +32,17 @@ class NeuronGene(Gene):
     def __init__(self, neuron, innovation_number=0, enabled=True):
         Gene.__init__(self, innovation_number = innovation_number,
                                        enabled = enabled)
+        """
+        :param neuron:
+        :type neuron: Neuron
+
+        :param innovation_number:
+        :type innovation_number: int
+
+        :param enabled:
+        :type enabled: bool
+        """
+
         self.neuron = neuron
 
 
@@ -39,6 +50,23 @@ class ConnectionGene(Gene):
     def __init__(self, neuron_from, neuron_to, weight, innovation_number=0, enabled=True):
         Gene.__init__(self, innovation_number = innovation_number,
                                              enabled = enabled)
+
+        """
+        :param neuron_from:
+        :type neuron_from: Neuron
+
+        :param neuron_to:
+        :type neuron_to: Neuron
+
+        :param weight:
+        :type weight: float
+
+        :param innovation_number:
+        :type innovation_number: int
+
+        :param enabled:
+        :type enabled: bool
+        """
         self.neuron_from = neuron_from
         self.neuron_to = neuron_to
         self.weight = weight

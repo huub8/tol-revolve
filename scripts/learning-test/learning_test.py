@@ -38,8 +38,6 @@ from tol.logging import logger, output_console
 from tol.spec import get_body_spec, get_brain_spec
 from tol.triangle_of_life import RobotLearner
 from tol.triangle_of_life.encoding import Mutator, Crossover
-from tol.triangle_of_life.convert import NeuralNetworkParser
-
 
 
 # Log output to console
@@ -49,11 +47,27 @@ logger.setLevel(logging.DEBUG)
 parent_color = (1, 0, 0, 0.5)
 child_color = (0, 1, 0, 0.5)
 
+parser.add_argument(
+    '--population-size',
+    default=10,
+    type=int,
+    help="number of individuals in brain population"
+)
 
-# braim population size:
-pop_size = 5
+parser.add_argument(
+    '--tournament-size',
+    default=4,
+    type=int,
+    help="number of individuals in the tournaments"
+)
 
-tournament_size = 2
+parser.add_argument(
+    '--eval-time',
+    default=15,
+    type=float,
+    help="time of individual evaluation in simulation seconds"
+)
+
 
 
 spider_yaml = '''
@@ -236,8 +250,14 @@ class LearningManager(World):
     @trollius.coroutine
     def run(self, conf):
 
+        # braim population size:
+        pop_size = conf.population_size
+
+        tournament_size = conf.tournament_size
+
+        evaluation_time = conf.eval_time  # in simulation seconds
+
         yield From(self.pause(False))
-  #      yield From(self.pause(True))
 
         print "### time now is {0}".format(self.last_time)
 
@@ -257,7 +277,7 @@ class LearningManager(World):
                                    mutator=self.mutator,
                                    population_size=pop_size,
                                    tournament_size=tournament_size,
-                                   evaluation_time=2, # simulation seconds
+                                   evaluation_time=evaluation_time, # simulation seconds
                                    max_num_generations=1000)
 
         if self.do_restore:
