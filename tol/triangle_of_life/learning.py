@@ -21,14 +21,14 @@ from .convert import NeuralNetworkParser
 
 class RobotLearner:
 
-    # TODO self.get_fitness()
-    # TODO self.update_fitness()
+    # TODO: check correctness of fitness in gazebo (visually)
 
     def __init__(self, world, robot, body_spec, brain_spec, mutator,
                  population_size, tournament_size, evaluation_time, max_num_generations):
         self.robot = robot
         self.active_brain = None
         self.fitness = 0
+        self.last_position = Vector3(0,0,0)
 
         self.pop_size = population_size
         self.tournament_size = tournament_size
@@ -115,15 +115,22 @@ class RobotLearner:
 
 
     def reset_fitness(self):
+        self.last_position = Vector3(0,0,0)
         self.fitness = 0
 
 
     def update_fitness(self):
-        self.fitness = 0
+        current_position = self.robot.last_position
+        diff = abs(self.last_position - current_position)
+        self.fitness += diff
 
 
     def get_fitness(self):
-        return self.fitness
+        if abs(self.last_position - Vector3(0,0,0)) > 0.5:
+            return self.fitness
+        else:
+            return 0
+        
 
 
     @trollius.coroutine
@@ -142,7 +149,8 @@ class RobotLearner:
             self.total_brains_evaluated += 1
 
             print "%%%%%%%%%%%%%%%%%%\n\nEvaluated {0} brains".format(self.total_brains_evaluated)
-            print "last evaluated: {0}\n\n%%%%%%%%%%%%%%%%%%".format(self.active_brain)
+            print "last evaluated: {0}".format(self.active_brain)
+            print "fitness (distance covered): %d\n\n%%%%%%%%%%%%%%%%%%"%self.fitness 
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
 
