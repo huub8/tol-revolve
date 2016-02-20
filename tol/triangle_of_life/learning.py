@@ -122,6 +122,7 @@ class RobotLearner:
     def update_fitness(self):
         current_position = self.robot.last_position
         diff = abs(self.last_position - current_position)
+        self.last_position = current_position
         self.fitness += diff
 
 
