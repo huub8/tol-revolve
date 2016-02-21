@@ -68,3 +68,6 @@ target/
 
 # gedit backup files
 *.*~
+
+# snapshots directory
+scripts/learning-test/output/restore/*
