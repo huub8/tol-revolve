@@ -90,7 +90,9 @@ class ConnectionGene(Gene):
 
 
     def __str__(self):
-            return "NEAT Connection gene at " + hex(id(self)) + ",mark " + str(self.historical_mark)
+            return "NEAT Connection gene at " + hex(id(self)) + ",mark " + str(self.historical_mark) + \
+                " (from " + str(self.mark_from) + " to " + str(self.mark_to) + ")"
+
 
 
 
@@ -198,21 +200,6 @@ class GeneticEncoding:
 
         for c_gene in self.connection_genes:
 
-            # try:
-            #     new_neuron_from = old_to_new[c_gene.neuron_from]
-            # except KeyError as ex:
-            #     raise GenotypeCopyError(
-            #         message = "copy error: key not found" + str(c_gene.neuron_from),
-            #         genotype = self)
-            #
-            # try:
-            #     new_neuron_to = old_to_new[c_gene.neuron_to]
-            # except KeyError:
-            #     raise GenotypeCopyError(
-            #         message = "copy error: key not found" + str(c_gene.neuron_to),
-            #         genotype = self)
-
-
             new_c_gene = ConnectionGene(
                     mark_from=c_gene.mark_from,
                     mark_to= c_gene.mark_to,
@@ -243,6 +230,11 @@ class GeneticEncoding:
         return result
 
 
+    def __str__(self):
+        return "NEAT Genotype at " + hex(id(self))
+
+
+
 class GenotypeCopyError(Exception):
     def __init__(self, message, genotype):
         self.message = message
@@ -253,10 +245,10 @@ class GenotypeCopyError(Exception):
         print "Tried to copy this genotype:"
         print "neurons:"
         for n_g in self.genotype.neuron_genes:
-            print n_g.neuron
+            print str(n_g) + ": " + str(n_g.neuron)
         print "connections:"
         for c_g in self.genotype.connection_genes:
-            print "[" + str(c_g.mark_from) + "," + str(c_g.mark_to) + "]"
+            print c_g
         print "--------------------------"
 
 
@@ -271,8 +263,8 @@ class GenotypeInvalidError(Exception):
         print "Invalid genotype:"
         print "neurons:"
         for n_g in self.genotype.neuron_genes:
-            print n_g.neuron
+            print n_g
         print "connections:"
         for c_g in self.genotype.connection_genes:
-            print "[" + str(c_g.mark_from) + "," + str(c_g.mark_to) + "]"
+            print c_g
         print "--------------------------"

@@ -205,6 +205,9 @@ class RobotLearner:
 
         for pair in parent_pairs:
 
+            print "\nSELECTED PARENTS:"
+            print str(pair[0]) + ", " + str(pair[1])
+
             # apply crossover:
             print "applying crossover..."
             child_genotype = Crossover.crossover(pair[0], pair[1])
@@ -226,7 +229,7 @@ class RobotLearner:
             print "neuron parameters mutation successful"
 
 
-            if random.random() < 1.0: # FOR DEBUG : increased probability of structural mutation
+            if random.random() < 0.5: # FOR DEBUG : increased probability of structural mutations
                 print "applying structural mutation..."
 
                 if len(child_genotype.connection_genes) == 0:

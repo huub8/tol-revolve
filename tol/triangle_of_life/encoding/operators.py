@@ -126,21 +126,21 @@ class Mutator:
         mark_from = connection_to_split.mark_from
         mark_to = connection_to_split.mark_to
 
-        neuron_from = genotype.find_gene_by_mark(mark_from)
-        neuron_to = genotype.find_gene_by_mark(mark_to)
+        neuron_from = genotype.find_gene_by_mark(mark_from).neuron
+        neuron_to = genotype.find_gene_by_mark(mark_to).neuron
 
         # TODO make so that new neuron can be added anywhere along the path
         body_part_id = random.choice([neuron_from.body_part_id, neuron_to.body_part_id])
 
 
-        new_neuron_type = "simple"
+        new_neuron_type = "Simple"
         # TODO Add option to generate neurons of other types
 
         new_neuron_params = self.brain_spec.get(new_neuron_type).\
                     get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
 
         neuron_middle = Neuron(
-            neuron_id="innov" + str(self.innovation_number),
+            neuron_id="augment" + str(self.innovation_number),
             neuron_type=new_neuron_type,
             layer="hidden",
             body_part_id=body_part_id,
@@ -204,11 +204,11 @@ class Crossover:
                             genes_worse[-1].historical_mark)
 
 
-        # FOR DEBUG
-        ############################################
-        print "MIN hist mark = {0}".format(min_hist_mark)
-        print "MAX hist mark = {0}".format(max_hist_mark)
-        ############################################
+        # # FOR DEBUG
+        # ############################################
+        # print "MIN hist mark = {0}".format(min_hist_mark)
+        # print "MAX hist mark = {0}".format(max_hist_mark)
+        # ############################################
 
         gene_pairs = []
 
@@ -228,12 +228,12 @@ class Crossover:
 
             gene_pairs.append((better_gene, worse_gene))
 
-        # FOR DEBUG
-        ############################################
-        print "PAIRS:"
-        for pair in gene_pairs:
-            print str(pair[0]) + "," + str(pair[1])
-        ############################################
+        # # FOR DEBUG
+        # ############################################
+        # print "PAIRS:"
+        # for pair in gene_pairs:
+        #     print str(pair[0]) + "," + str(pair[1])
+        # ############################################
 
 
         child_genes = []
@@ -252,12 +252,12 @@ class Crossover:
                 child_genes.append(pair[0])
 
 
-        # FOR DEBUG
-        ############################################
-        print "CHILD GENES:"
-        for gene in child_genes:
-            print str(gene)
-        ############################################
+        # # FOR DEBUG
+        # ############################################
+        # print "CHILD GENES:"
+        # for gene in child_genes:
+        #     print str(gene)
+        # ############################################
 
 
         child_genotype = GeneticEncoding()
