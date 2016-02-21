@@ -31,3 +31,7 @@ class Timers:
     def reset(self, name, current_time):
         self.timers[name] = current_time
 
+
+    def get_last_time(self, name):
+        return self.timers[name]
+

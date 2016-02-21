@@ -45,6 +45,7 @@ class RobotLearner:
         self.mutator = mutator
 
         self.timers = Timers(['evaluate'], world.last_time)
+ #       self.timers = Timers(['evaluate'], 0)
         self.evaluation_queue = deque()
         self.brain_fitness = {}
         self.generation_number = 0
@@ -54,23 +55,16 @@ class RobotLearner:
 
 
     @trollius.coroutine
-    def initialize(self, world, data=None):
+    def initialize(self, world):
 
-        # if we are not restoring:
-        if data is None:
-            brain_population = self.get_init_brains()
-            for br in brain_population:
-                validate_genotype(br, "initial generation created invalid genotype")
-                self.evaluation_queue.append(br)
+        brain_population = self.get_init_brains()
+        for br in brain_population:
+            validate_genotype(br, "initial generation created invalid genotype")
+            self.evaluation_queue.append(br)
 
-            first_brain = self.evaluation_queue.popleft()
+        first_brain = self.evaluation_queue.popleft()
 
-            yield From(self.activate_brain(world, first_brain))
-        # if we are restoring:
-        else:
-            self.unpack_data(data)
-            yield From(self.activate_brain(world, data['active_brain']))
-
+        yield From(self.activate_brain(world, first_brain))
 
 
 
@@ -146,6 +140,12 @@ class RobotLearner:
         :return: bool
         """
 
+        # # FOR DEBUG
+        # ################################################
+        # print "world time: " + str(world.last_time)
+        # print "timer time: " + str(self.timers.get_last_time('evaluate'))
+        # ################################################
+
         # when evaluation is over:
         if self.timers.is_it_time('evaluate', self.evaluation_time, world.last_time):
 
@@ -159,8 +159,8 @@ class RobotLearner:
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
 
-            # # make snapshot (freezes when evaluation queue is empty:
-            # yield From(world.create_snapshot())
+            # make snapshot (freezes when evaluation queue is empty:
+            yield From(world.create_snapshot())
 
             # if all brains are evaluated, produce new generation:
             if len(self.evaluation_queue) == 0:

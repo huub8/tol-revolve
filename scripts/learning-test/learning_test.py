@@ -7,6 +7,7 @@ import math
 import csv
 import logging
 import shutil
+from time import sleep
 
 from revolve.build.util import in_cm, in_mm
 from revolve.util import Time
@@ -230,16 +231,18 @@ class LearningManager(World):
     @trollius.coroutine
     def get_snapshot_data(self):
         data = yield From(super(LearningManager, self).get_snapshot_data())
-        for learner in self.learner_list:
-            self.learner_data.append(learner.pack_data())
-        data['learners'] = self.learner_data
+ #       for learner in self.learner_list:
+ #           self.learner_data.append(learner.pack_data())
+ #       data['learners'] = self.learner_data
+        data['learners'] = self.learner_list
         data['innovation_number'] = self.mutator.innovation_number
         raise Return(data)
 
 
     def restore_snapshot(self, data):
         yield From(super(LearningManager, self).restore_snapshot(data))
-        self.learner_data = data['learners']
+#        self.learner_data = data['learners']
+        self.learner_list = data['learners']
         self.mutator.innovation_number = data['innovation_number']
 
 
@@ -266,38 +269,41 @@ class LearningManager(World):
         ###############################################
 
         yield From(self.pause(False))
-
         print "### time now is {0}".format(self.last_time)
 
+        if not self.do_restore:
+            bot_yaml = spider_yaml
+            pose = Pose(position=Vector3(0, 0, 0))
+            bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
+            tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
 
-        bot_yaml = spider_yaml
-        pose = Pose(position=Vector3(0, 0, 0))
-        bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
-        tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
+            robot = yield From(wait_for(self.insert_robot(tree, pose)))
+            print("new robot id = %d" % robot.robot.id)
 
-        robot = yield From(wait_for(self.insert_robot(tree, pose)))
-        print("new robot id = %d" % robot.robot.id)
+            learner = RobotLearner(world=self,
+                                       robot=robot,
+                                       body_spec=self.body_spec,
+                                       brain_spec=self.brain_spec,
+                                       mutator=self.mutator,
+                                       population_size=pop_size,
+                                       tournament_size=tournament_size,
+                                       evaluation_time=evaluation_time, # simulation seconds
+                                       max_num_generations=1000)
 
-        learner = RobotLearner(world=self,
-                                   robot=robot,
-                                   body_spec=self.body_spec,
-                                   brain_spec=self.brain_spec,
-                                   mutator=self.mutator,
-                                   population_size=pop_size,
-                                   tournament_size=tournament_size,
-                                   evaluation_time=evaluation_time, # simulation seconds
-                                   max_num_generations=1000)
-
-        if self.do_restore:
-            yield From(learner.initialize(world=self, data=self.learner_data[0]))
-
-            print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
-            print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
-        else:
             yield From(learner.initialize(world=self))
 
+            self.add_learner(learner)
 
-        self.add_learner(learner)
+
+        else:
+#            yield From(learner.initialize(world=self, data=self.learner_data[0]))
+            print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
+            print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
+ #       else:
+ #           yield From(learner.initialize(world=self))
+
+
+  #      self.add_learner(learner)
 
         # Request callback for the subscriber
         def callback(data):
