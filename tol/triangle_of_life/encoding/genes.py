@@ -60,7 +60,7 @@ class NeuronGene(Gene):
 
 
     def __str__(self):
-        return "NEAT Neuron gene at " + hex(id(self))
+        return "NEAT Neuron gene at " + hex(id(self)) + ",mark " + str(self.historical_mark)
 
 
 class ConnectionGene(Gene):
@@ -90,7 +90,7 @@ class ConnectionGene(Gene):
 
 
     def __str__(self):
-            return "NEAT Connection gene at " + hex(id(self))
+            return "NEAT Connection gene at " + hex(id(self)) + ",mark " + str(self.historical_mark)
 
 
 
