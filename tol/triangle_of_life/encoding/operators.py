@@ -1,6 +1,6 @@
 import random
 
-from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron, GenotypeCopyError
+from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron, GenotypeCopyError, validate_genotype
 
 
 
@@ -178,17 +178,12 @@ class Crossover:
             genotype_more_fit = genotype_more_fit.copy()
             genotype_less_fit = genotype_less_fit.copy()
         except GenotypeCopyError as ex:
-            print "--------------------------"
-            print "Crossover: Error when copying genotype"
-            print ex.message
-            print "neurons:"
-            for n_g in ex.genotype.neuron_genes:
-                print n_g.neuron
-            print "connections:"
-            for c_g in ex.genotype.connection_genes:
-                print "[" + str(c_g.neuron_from) + "," + str(c_g.neuron_to) + "]"
-            print "--------------------------"
+            print ex.debug_string()
+            raise RuntimeError
 
+
+        # validate_genotype(genotype_more_fit, "crossover: copying created invalid genotype")
+        # validate_genotype(genotype_less_fit, "crossover: copying created invalid genotype")
 
         # sort genes by historical marks:
         genes_better = sorted(genotype_more_fit.neuron_genes + genotype_more_fit.connection_genes,
@@ -203,6 +198,13 @@ class Crossover:
 
         max_hist_mark = max(genes_better[-1].historical_mark,
                             genes_worse[-1].historical_mark)
+
+
+        # FOR DEBUG
+        ############################################
+        print "MIN hist mark = {0}".format(min_hist_mark)
+        print "MAX hist mark = {0}".format(max_hist_mark)
+        ############################################
 
         gene_pairs = []
 
@@ -222,6 +224,13 @@ class Crossover:
 
             gene_pairs.append((better_gene, worse_gene))
 
+        # FOR DEBUG
+        ############################################
+        print "PAIRS:"
+        for pair in gene_pairs:
+            print str(pair[0]) + "," + str(pair[1])
+        ############################################
+
 
         child_genes = []
 
@@ -237,6 +246,15 @@ class Crossover:
             # inherit unpaired gene from the more fit parent:
             elif pair[0] is not None:
                 child_genes.append(pair[0])
+
+
+        # FOR DEBUG
+        ############################################
+        print "CHILD GENES:"
+        for gene in child_genes:
+            print str(gene)
+        ############################################
+
 
         child_genotype = GeneticEncoding()
         for gene in child_genes:

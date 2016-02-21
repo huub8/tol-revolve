@@ -15,17 +15,9 @@ from ..config import parser
 from ..manage import World
 from ..logging import logger, output_console
 from . import Timers
-from .encoding import Crossover, GenotypeInvalidError
+from .encoding import Crossover, validate_genotype
 from .convert import NeuralNetworkParser
 
-
-
-def validate_genotype(genotype, err_message):
-    if not genotype.check_validity():
-        ex = GenotypeInvalidError(message=err_message, genotype=genotype)
-        print ex.debug_string()
-        raise RuntimeError
-    return True
 
 
 class RobotLearner:
@@ -68,8 +60,8 @@ class RobotLearner:
         if data is None:
             brain_population = self.get_init_brains()
             for br in brain_population:
-                if validate_genotype(br, "initial generation created invalid genotype"):
-                    self.evaluation_queue.append(br)
+                validate_genotype(br, "initial generation created invalid genotype")
+                self.evaluation_queue.append(br)
 
             first_brain = self.evaluation_queue.popleft()
 
@@ -216,22 +208,22 @@ class RobotLearner:
             # apply crossover:
             print "applying crossover..."
             child_genotype = Crossover.crossover(pair[0], pair[1])
-            if validate_genotype(child_genotype, "crossover created invalid genotype"):
-                print "crossover successful"
+            validate_genotype(child_genotype, "crossover created invalid genotype")
+            print "crossover successful"
 
 
             # apply mutations:
 
             print "applying weight mutations..."
             self.mutator.mutate_weights(genotype=child_genotype, probability=0.2, sigma=1)
-            if validate_genotype(child_genotype, "weight mutation created invalid genotype"):
-                print "weight mutation successful"
+            validate_genotype(child_genotype, "weight mutation created invalid genotype")
+            print "weight mutation successful"
 
 
             print "applying neuron parameters mutations..."
             self.mutator.mutate_neuron_params(genotype=child_genotype, probability=0.2)
-            if validate_genotype(child_genotype, "neuron parameters mutation created invalid genotype"):
-                print "neuron parameters mutation successful"
+            validate_genotype(child_genotype, "neuron parameters mutation created invalid genotype")
+            print "neuron parameters mutation successful"
 
 
             if random.random() < 1.0: # FOR DEBUG : increased probability of structural mutation
@@ -240,22 +232,22 @@ class RobotLearner:
                 if len(child_genotype.connection_genes) == 0:
                     print "inserting new CONNECTION..."
                     self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
-                    if validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype"):
-                        print "inserting new CONNECTION successful"
+                    validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype")
+                    print "inserting new CONNECTION successful"
 
                 else:
                     if random.random() < 0.5:
                         print "inserting new CONNECTION..."
                         self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
-                        if validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype"):
-                            print "inserting new CONNECTION successful"
+                        validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype")
+                        print "inserting new CONNECTION successful"
 
 
                     else:
                         print "inserting new NEURON..."
                         self.mutator.add_neuron_mutation(child_genotype)
-                        if validate_genotype(child_genotype, "inserting new NEURON created invalid genotype"):
-                            print "inserting new NEURON successful"
+                        validate_genotype(child_genotype, "inserting new NEURON created invalid genotype")
+                        print "inserting new NEURON successful"
 
 
             # self.mutator.mutate_structure(genotype=child_genotype, probability=0.1)

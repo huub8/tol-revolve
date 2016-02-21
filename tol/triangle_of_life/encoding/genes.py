@@ -1,5 +1,15 @@
 from copy import copy, deepcopy
 
+
+def validate_genotype(genotype, err_message):
+    if not genotype.check_validity():
+        ex = GenotypeInvalidError(message=err_message, genotype=genotype)
+        print ex.debug_string()
+        raise RuntimeError
+    return True
+
+
+
 class Neuron:
     """
     This is all the info about a neuron
@@ -19,6 +29,9 @@ class Neuron:
                              body_part_id=copy(self.body_part_id),
                              neuron_params=deepcopy(self.neuron_params))
         return copy_neuron
+
+    def __str__(self):
+        return "Neuron info at " + hex(id(self))
 
 
 
@@ -46,6 +59,10 @@ class NeuronGene(Gene):
         self.neuron = neuron
 
 
+    def __str__(self):
+        return "NEAT Neuron gene at " + hex(id(self))
+
+
 class ConnectionGene(Gene):
     def __init__(self, neuron_from, neuron_to, weight, innovation_number=0, enabled=True):
         Gene.__init__(self, innovation_number = innovation_number,
@@ -71,6 +88,9 @@ class ConnectionGene(Gene):
         self.neuron_to = neuron_to
         self.weight = weight
 
+
+    def __str__(self):
+            return "NEAT Connection gene at " + hex(id(self))
 
 
 
@@ -191,14 +211,14 @@ class GeneticEncoding:
                 new_neuron_from = old_to_new[c_gene.neuron_from]
             except KeyError as ex:
                 raise GenotypeCopyError(
-                    message = "key not found" + str(c_gene.neuron_from),
+                    message = "copy error: key not found" + str(c_gene.neuron_from),
                     genotype = self)
 
             try:
                 new_neuron_to = old_to_new[c_gene.neuron_to]
             except KeyError:
                 raise GenotypeCopyError(
-                    message = "key not found" + str(c_gene.neuron_to),
+                    message = "copy error: key not found" + str(c_gene.neuron_to),
                     genotype = self)
 
 
@@ -236,6 +256,17 @@ class GenotypeCopyError(Exception):
     def __init__(self, message, genotype):
         self.message = message
         self.genotype = genotype
+    def debug_string(self):
+        print "--------------------------"
+        print self.message
+        print "Tried to copy this genotype:"
+        print "neurons:"
+        for n_g in self.genotype.neuron_genes:
+            print n_g.neuron
+        print "connections:"
+        for c_g in self.genotype.connection_genes:
+            print "[" + str(c_g.neuron_from) + "," + str(c_g.neuron_to) + "]"
+        print "--------------------------"
 
 
 class GenotypeInvalidError(Exception):
