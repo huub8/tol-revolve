@@ -100,19 +100,19 @@ class Mutator:
 
 
     def add_connection_mutation(self, genotype, sigma):
-        neuron_from = random.choice(genotype.neuron_genes).neuron
-        neuron_to = random.choice(genotype.neuron_genes).neuron
+        mark_from = random.choice(genotype.neuron_genes).historical_mark
+        mark_to = random.choice(genotype.neuron_genes).historical_mark
 
         num_attempts = 1
-        while genotype.connection_exists(neuron_from, neuron_to):
-            neuron_from = random.choice(genotype.neuron_genes).neuron
-            neuron_to = random.choice(genotype.neuron_genes).neuron
+        while genotype.connection_exists(mark_from, mark_to):
+            mark_from = random.choice(genotype.neuron_genes).historical_mark
+            mark_to = random.choice(genotype.neuron_genes).historical_mark
 
             num_attempts += 1
             if num_attempts >= self.max_attempts:
                 return False
 
-        self.add_connection(neuron_from, neuron_to, weight = random.gauss(0, sigma), genotype = genotype)
+        self.add_connection(mark_from, mark_to, weight = random.gauss(0, sigma), genotype = genotype)
 
 
         return True
@@ -123,8 +123,11 @@ class Mutator:
         old_weight = connection_to_split.weight
         connection_to_split.enabled = False
 
-        neuron_from = connection_to_split.neuron_from
-        neuron_to = connection_to_split.neuron_to
+        mark_from = connection_to_split.mark_from
+        mark_to = connection_to_split.mark_to
+
+        neuron_from = genotype.find_gene_by_mark(mark_from)
+        neuron_to = genotype.find_gene_by_mark(mark_to)
 
         # TODO make so that new neuron can be added anywhere along the path
         body_part_id = random.choice([neuron_from.body_part_id, neuron_to.body_part_id])
@@ -136,7 +139,6 @@ class Mutator:
         new_neuron_params = self.brain_spec.get(new_neuron_type).\
                     get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
 
- #       neuron_middle = Neuron("hidden", body_part_id)
         neuron_middle = Neuron(
             neuron_id="innov" + str(self.innovation_number),
             neuron_type=new_neuron_type,
@@ -145,9 +147,9 @@ class Mutator:
             neuron_params=new_neuron_params
         )
 
-        self.add_neuron(neuron_middle, genotype)
-        self.add_connection(neuron_from, neuron_middle, old_weight, genotype)
-        self.add_connection(neuron_middle, neuron_to, 1.0, genotype)
+        mark_middle = self.add_neuron(neuron_middle, genotype)
+        self.add_connection(mark_from, mark_middle, old_weight, genotype)
+        self.add_connection(mark_middle, mark_to, 1.0, genotype)
 
 
 
@@ -158,15 +160,17 @@ class Mutator:
                                 enabled = True)
         self.innovation_number += 1
         genotype.add_neuron_gene(new_neuron_gene)
+        return new_neuron_gene.historical_mark
 
 
-    def add_connection(self, neuron_from, neuron_to, weight, genotype):
-        new_conn_gene = ConnectionGene(neuron_from, neuron_to,
+    def add_connection(self, mark_from, mark_to, weight, genotype):
+        new_conn_gene = ConnectionGene(mark_from, mark_to,
                                   weight = weight,
                                   innovation_number = self.innovation_number,
                                   enabled = True)
         self.innovation_number += 1
         genotype.add_connection_gene(new_conn_gene)
+        return new_conn_gene.historical_mark
 
 
 class Crossover:

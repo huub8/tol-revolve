@@ -64,16 +64,16 @@ class NeuronGene(Gene):
 
 
 class ConnectionGene(Gene):
-    def __init__(self, neuron_from, neuron_to, weight, innovation_number=0, enabled=True):
+    def __init__(self, mark_from, mark_to, weight, innovation_number=0, enabled=True):
         Gene.__init__(self, innovation_number = innovation_number,
                                              enabled = enabled)
 
         """
-        :param neuron_from:
-        :type neuron_from: Neuron
+        :param mark_from:
+        :type mark_from: int
 
-        :param neuron_to:
-        :type neuron_to: Neuron
+        :param mark_to:
+        :type mark_to: int
 
         :param weight:
         :type weight: float
@@ -84,8 +84,8 @@ class ConnectionGene(Gene):
         :param enabled:
         :type enabled: bool
         """
-        self.neuron_from = neuron_from
-        self.neuron_to = neuron_to
+        self.mark_from = mark_from
+        self.mark_to = mark_to
         self.weight = weight
 
 
@@ -100,30 +100,21 @@ class GeneticEncoding:
         self.connection_genes = []
 
 
-    def connection_exists(self, neuron_from, neuron_to):
+    def connection_exists(self, mark_from, mark_to):
         exists = False
         for c_g in self.connection_genes:
-            if c_g.neuron_from == neuron_from and c_g.neuron_to == neuron_to and c_g.enabled:
+            if c_g.mark_from == mark_from and c_g.mark_to == mark_to and c_g.enabled:
                 exists = True
                 break
 
         return exists
 
 
-    def are_two_genes_same(self, gene1, gene2):
-        """
-        Returns True if two genes represent the same structure
-
-        :type gene1: Gene
-        :type gene2: Gene
-        """
-
-        if isinstance(gene1, NeuronGene) and isinstance(gene2, NeuronGene):
-            return gene1.neuron == gene2.neuron
-        elif isinstance(gene1, ConnectionGene) and isinstance(gene2, ConnectionGene):
-            return gene1.neuron_from == gene2.neuron_to and gene1.neuron_to == gene2.neuron_to
-        else:
-            return False
+    def find_gene_by_mark(self, mark):
+        for gene in self.neuron_genes + self.connection_genes:
+            if gene.historical_mark == mark:
+                return gene
+        return None
 
 
     def add_neuron_gene(self, neuron_gene):
@@ -152,8 +143,8 @@ class GeneticEncoding:
             conn_list.append({
                 "hist_mark": conn_gene.historical_mark,
                 "enabled": conn_gene.enabled,
-                "from": conn_gene.neuron_from.neuron_id,
-                "to": conn_gene.neuron_to.neuron_id
+                "from": conn_gene.mark_from,
+                "to": conn_gene.mark_to
             })
 
         return neuron_list, conn_list
@@ -207,24 +198,24 @@ class GeneticEncoding:
 
         for c_gene in self.connection_genes:
 
-            try:
-                new_neuron_from = old_to_new[c_gene.neuron_from]
-            except KeyError as ex:
-                raise GenotypeCopyError(
-                    message = "copy error: key not found" + str(c_gene.neuron_from),
-                    genotype = self)
-
-            try:
-                new_neuron_to = old_to_new[c_gene.neuron_to]
-            except KeyError:
-                raise GenotypeCopyError(
-                    message = "copy error: key not found" + str(c_gene.neuron_to),
-                    genotype = self)
+            # try:
+            #     new_neuron_from = old_to_new[c_gene.neuron_from]
+            # except KeyError as ex:
+            #     raise GenotypeCopyError(
+            #         message = "copy error: key not found" + str(c_gene.neuron_from),
+            #         genotype = self)
+            #
+            # try:
+            #     new_neuron_to = old_to_new[c_gene.neuron_to]
+            # except KeyError:
+            #     raise GenotypeCopyError(
+            #         message = "copy error: key not found" + str(c_gene.neuron_to),
+            #         genotype = self)
 
 
             new_c_gene = ConnectionGene(
-                    neuron_from=new_neuron_from,
-                    neuron_to= new_neuron_to,
+                    mark_from=c_gene.mark_from,
+                    mark_to= c_gene.mark_to,
                     weight=c_gene.weight,
                     innovation_number=c_gene.historical_mark,
                     enabled=c_gene.enabled)
@@ -235,19 +226,19 @@ class GeneticEncoding:
 
     def check_validity(self):
         for conn_gene in self.connection_genes:
-            neuron_from = conn_gene.neuron_from
-            neuron_to = conn_gene.neuron_to
-            if not self.check_neuron_exists(neuron_from):
+            mark_from = conn_gene.mark_from
+            mark_to = conn_gene.mark_to
+            if not self.check_neuron_exists(mark_from):
                 return False
-            if not self.check_neuron_exists(neuron_to):
+            if not self.check_neuron_exists(mark_to):
                 return False
         return True
 
 
-    def check_neuron_exists(self, neuron):
+    def check_neuron_exists(self, mark):
         result = False
         for neuron_gene in self.neuron_genes:
-            if neuron == neuron_gene.neuron:
+            if mark == neuron_gene.historical_mark:
                 result = True
         return result
 
@@ -265,7 +256,7 @@ class GenotypeCopyError(Exception):
             print n_g.neuron
         print "connections:"
         for c_g in self.genotype.connection_genes:
-            print "[" + str(c_g.neuron_from) + "," + str(c_g.neuron_to) + "]"
+            print "[" + str(c_g.mark_from) + "," + str(c_g.mark_to) + "]"
         print "--------------------------"
 
 
@@ -283,5 +274,5 @@ class GenotypeInvalidError(Exception):
             print n_g.neuron
         print "connections:"
         for c_g in self.genotype.connection_genes:
-            print "[" + str(c_g.neuron_from) + "," + str(c_g.neuron_to) + "]"
+            print "[" + str(c_g.mark_from) + "," + str(c_g.mark_to) + "]"
         print "--------------------------"
