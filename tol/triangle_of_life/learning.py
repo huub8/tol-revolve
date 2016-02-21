@@ -15,8 +15,17 @@ from ..config import parser
 from ..manage import World
 from ..logging import logger, output_console
 from . import Timers
-from .encoding import Mutator, Crossover
+from .encoding import Crossover, GenotypeInvalidError
 from .convert import NeuralNetworkParser
+
+
+
+def validate_genotype(genotype, err_message):
+    if not genotype.check_validity():
+        ex = GenotypeInvalidError(message=err_message, genotype=genotype)
+        print ex.debug_string()
+        raise RuntimeError
+    return True
 
 
 class RobotLearner:
@@ -59,7 +68,9 @@ class RobotLearner:
         if data is None:
             brain_population = self.get_init_brains()
             for br in brain_population:
-                self.evaluation_queue.append(br)
+                if validate_genotype(br, "initial generation created invalid genotype"):
+                    self.evaluation_queue.append(br)
+
             first_brain = self.evaluation_queue.popleft()
 
             yield From(self.activate_brain(world, first_brain))
@@ -127,7 +138,7 @@ class RobotLearner:
 
 
     def get_fitness(self):
-        if abs(self.last_position - Vector3(0,0,0)) > 0.5:
+        if abs(self.last_position - Vector3(0,0,0)) > 0.001:
             return self.fitness
         else:
             return 0
@@ -151,7 +162,8 @@ class RobotLearner:
 
             print "%%%%%%%%%%%%%%%%%%\n\nEvaluated {0} brains".format(self.total_brains_evaluated)
             print "last evaluated: {0}".format(self.active_brain)
-            print "fitness (distance covered): %d\n\n%%%%%%%%%%%%%%%%%%"%self.fitness 
+            print "queue length = {0}".format(len(self.evaluation_queue))
+            print "fitness (distance covered): {0}\n\n%%%%%%%%%%%%%%%%%%".format(self.fitness )
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
 
@@ -160,13 +172,15 @@ class RobotLearner:
 
             # if all brains are evaluated, produce new generation:
             if len(self.evaluation_queue) == 0:
+
+                # this method fills the evaluation queue with new brains:
                 self.produce_new_generation()
                 self.generation_number += 1
 
-            # else continue evaluating brains from the queue:
-            else:
-                next_brain = self.evaluation_queue.popleft()
-                yield From(self.activate_brain(world, next_brain))
+
+            # continue evaluating brains from the queue:
+            next_brain = self.evaluation_queue.popleft()
+            yield From(self.activate_brain(world, next_brain))
 
             self.timers.reset('evaluate', world.last_time)
 
@@ -191,7 +205,6 @@ class RobotLearner:
         for _ in range(self.pop_size):
             selected = self.select_for_tournament(brain_fitness_list)
 
-            print "selected:", selected
             parent_a = selected[0]
             parent_b = selected[1]
 
@@ -201,12 +214,54 @@ class RobotLearner:
         for pair in parent_pairs:
 
             # apply crossover:
+            print "applying crossover..."
             child_genotype = Crossover.crossover(pair[0], pair[1])
+            if validate_genotype(child_genotype, "crossover created invalid genotype"):
+                print "crossover successful"
+
 
             # apply mutations:
+
+            print "applying weight mutations..."
             self.mutator.mutate_weights(genotype=child_genotype, probability=0.2, sigma=1)
+            if validate_genotype(child_genotype, "weight mutation created invalid genotype"):
+                print "weight mutation successful"
+
+
+            print "applying neuron parameters mutations..."
             self.mutator.mutate_neuron_params(genotype=child_genotype, probability=0.2)
-            self.mutator.mutate_structure(genotype=child_genotype, probability=0.1)
+            if validate_genotype(child_genotype, "neuron parameters mutation created invalid genotype"):
+                print "neuron parameters mutation successful"
+
+
+            if random.random() < 1.0: # FOR DEBUG : increased probability of structural mutation
+                print "applying structural mutation..."
+
+                if len(child_genotype.connection_genes) == 0:
+                    print "inserting new CONNECTION..."
+                    self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
+                    if validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype"):
+                        print "inserting new CONNECTION successful"
+
+                else:
+                    if random.random() < 0.5:
+                        print "inserting new CONNECTION..."
+                        self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
+                        if validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype"):
+                            print "inserting new CONNECTION successful"
+
+
+                    else:
+                        print "inserting new NEURON..."
+                        self.mutator.add_neuron_mutation(child_genotype)
+                        if validate_genotype(child_genotype, "inserting new NEURON created invalid genotype"):
+                            print "inserting new NEURON successful"
+
+
+            # self.mutator.mutate_structure(genotype=child_genotype, probability=0.1)
+
+            # if validate_genotype(child_genotype, "structural mutation created invalid genotype"):
+            #     print "structural mutation successful"
 
             self.evaluation_queue.append(child_genotype)
 
@@ -247,14 +302,9 @@ class RobotLearner:
         data['brain_fitness'] = self.brain_fitness
         data['active_brain'] = self.active_brain
 
-        # # queue can't be pickled:
-        # eval_list = []
-        # while not self.evaluation_queue.empty():
-        #     eval_list.append(self.evaluation_queue.q)
-        #
-        # data['evaluation_list'] = eval_list
-
         data['evaluation_queue'] = self.evaluation_queue
+        data['brains_evaluated'] = self.total_brains_evaluated
+        data['last_position'] = self.last_position
 
         return data
 
@@ -272,8 +322,7 @@ class RobotLearner:
         self.generation_number = data['generation_number']
         self.max_generations = data['max_generations']
 
-        # eval_list = data['evaluation_list']
-        # for item in eval_list:
-        #     self.evaluation_queue.append(item)
 
         self.evaluation_queue = data['evaluation_queue']
+        self.total_brains_evaluated = data['brains_evaluated']
+        self.last_position = data['last_position']

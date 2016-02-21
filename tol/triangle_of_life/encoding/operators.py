@@ -1,7 +1,7 @@
 import random
-import numpy
 
-from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron
+from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron, GenotypeCopyError
+
 
 
 class Mutator:
@@ -129,11 +129,26 @@ class Mutator:
         # TODO make so that new neuron can be added anywhere along the path
         body_part_id = random.choice([neuron_from.body_part_id, neuron_to.body_part_id])
 
-        neuron_middle = Neuron("hidden", body_part_id)
 
+        new_neuron_type = "simple"
+        # TODO Add option to generate neurons of other types
+
+        new_neuron_params = self.brain_spec.get(new_neuron_type).\
+                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
+
+ #       neuron_middle = Neuron("hidden", body_part_id)
+        neuron_middle = Neuron(
+            neuron_id="innov" + str(self.innovation_number),
+            neuron_type=new_neuron_type,
+            layer="hidden",
+            body_part_id=body_part_id,
+            neuron_params=new_neuron_params
+        )
+
+        self.add_neuron(neuron_middle, genotype)
         self.add_connection(neuron_from, neuron_middle, old_weight, genotype)
         self.add_connection(neuron_middle, neuron_to, 1.0, genotype)
-        self.add_neuron(neuron_middle, genotype)
+
 
 
 
@@ -159,8 +174,21 @@ class Crossover:
     @staticmethod
     def crossover(genotype_more_fit, genotype_less_fit):
         # copy original genotypes to keep them intact:
-        genotype_more_fit = genotype_more_fit.copy()
-        genotype_less_fit = genotype_less_fit.copy()
+        try:
+            genotype_more_fit = genotype_more_fit.copy()
+            genotype_less_fit = genotype_less_fit.copy()
+        except GenotypeCopyError as ex:
+            print "--------------------------"
+            print "Crossover: Error when copying genotype"
+            print ex.message
+            print "neurons:"
+            for n_g in ex.genotype.neuron_genes:
+                print n_g.neuron
+            print "connections:"
+            for c_g in ex.genotype.connection_genes:
+                print "[" + str(c_g.neuron_from) + "," + str(c_g.neuron_to) + "]"
+            print "--------------------------"
+
 
         # sort genes by historical marks:
         genes_better = sorted(genotype_more_fit.neuron_genes + genotype_more_fit.connection_genes,

@@ -139,17 +139,33 @@ class GeneticEncoding:
         return neuron_list, conn_list
 
 
-    def debug_string(self):
+    def debug_string(self, verbose=False):
         deb_str = ""
-        n_gs, c_gs = self.to_lists()
-        deb_str += "neurons:\n"
-        for n_g in n_gs:
-            deb_str += str(n_g)
-            deb_str += "\n"
-        deb_str += "connections:\n"
-        for c_g in c_gs:
-            deb_str += str(c_g)
-            deb_str += "\n"
+        if verbose:
+            n_gs, c_gs = self.to_lists()
+            deb_str += "neurons:\n"
+            for n_g in n_gs:
+                deb_str += str(n_g)
+                deb_str += "\n"
+            deb_str += "connections:\n"
+            for c_g in c_gs:
+                deb_str += str(c_g)
+                deb_str += "\n"
+
+        else:
+            n_gs, c_gs = self.to_lists()
+            deb_str += "neurons:\n"
+            for n_g in n_gs:
+                deb_str += "("
+                deb_str += str(n_g["id"])
+                deb_str += ")"
+            deb_str += "\nconnections:\n"
+            for c_g in c_gs:
+                deb_str += "["
+                deb_str += str(c_g["from"])
+                deb_str += ", "
+                deb_str += str(c_g["to"])
+                deb_str += "]"
 
         return deb_str
 
@@ -165,13 +181,30 @@ class GeneticEncoding:
                     innovation_number=n_gene.historical_mark,
                     enabled=n_gene.enabled)
 
-            old_to_new[n_gene] = new_n_gene
+            old_to_new[n_gene.neuron] = new_n_gene.neuron
             copy_gen.add_neuron_gene(new_n_gene)
 
+
         for c_gene in self.connection_genes:
+
+            try:
+                new_neuron_from = old_to_new[c_gene.neuron_from]
+            except KeyError as ex:
+                raise GenotypeCopyError(
+                    message = "key not found" + str(c_gene.neuron_from),
+                    genotype = self)
+
+            try:
+                new_neuron_to = old_to_new[c_gene.neuron_to]
+            except KeyError:
+                raise GenotypeCopyError(
+                    message = "key not found" + str(c_gene.neuron_to),
+                    genotype = self)
+
+
             new_c_gene = ConnectionGene(
-                    neuron_from=old_to_new[c_gene.neuron_from],
-                    neuron_to= old_to_new[c_gene.neuron_to],
+                    neuron_from=new_neuron_from,
+                    neuron_to= new_neuron_to,
                     weight=c_gene.weight,
                     innovation_number=c_gene.historical_mark,
                     enabled=c_gene.enabled)
@@ -179,3 +212,45 @@ class GeneticEncoding:
 
         return copy_gen
 
+
+    def check_validity(self):
+        for conn_gene in self.connection_genes:
+            neuron_from = conn_gene.neuron_from
+            neuron_to = conn_gene.neuron_to
+            if not self.check_neuron_exists(neuron_from):
+                return False
+            if not self.check_neuron_exists(neuron_to):
+                return False
+        return True
+
+
+    def check_neuron_exists(self, neuron):
+        result = False
+        for neuron_gene in self.neuron_genes:
+            if neuron == neuron_gene.neuron:
+                result = True
+        return result
+
+
+class GenotypeCopyError(Exception):
+    def __init__(self, message, genotype):
+        self.message = message
+        self.genotype = genotype
+
+
+class GenotypeInvalidError(Exception):
+    def __init__(self, message, genotype):
+        self.message = message
+        self.genotype = genotype
+
+    def debug_string(self):
+        print "--------------------------"
+        print self.message
+        print "Invalid genotype:"
+        print "neurons:"
+        for n_g in self.genotype.neuron_genes:
+            print n_g.neuron
+        print "connections:"
+        for c_g in self.genotype.connection_genes:
+            print "[" + str(c_g.neuron_from) + "," + str(c_g.neuron_to) + "]"
+        print "--------------------------"

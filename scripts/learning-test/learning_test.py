@@ -250,12 +250,20 @@ class LearningManager(World):
     @trollius.coroutine
     def run(self, conf):
 
+        # # braim population size:
+        # pop_size = conf.population_size
+        #
+        # tournament_size = conf.tournament_size
+        #
+        # evaluation_time = conf.eval_time  # in simulation seconds
+
+        # FOR DEBUG
+        ###############################################
         # braim population size:
-        pop_size = conf.population_size
-
-        tournament_size = conf.tournament_size
-
-        evaluation_time = conf.eval_time  # in simulation seconds
+        pop_size = 4
+        tournament_size = 2
+        evaluation_time = 1  # in simulation seconds
+        ###############################################
 
         yield From(self.pause(False))
 
