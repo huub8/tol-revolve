@@ -1,0 +1,89 @@
+---
+body:
+  id          : Core
+  type        : Core
+  children    :
+    0:
+      id          : Leg00Joint
+      type        : ActiveHinge
+      orientation : 90
+      children    :
+        1:
+          id          : Leg00
+          type        : FixedBrick
+          orientation : -90
+          children    :
+            1:
+              id          : Leg01Joint
+              type        : ActiveHinge
+              children    :
+                1:
+                  id          : Leg01
+                  type        : FixedBrick
+    1:
+      id          : Leg10Joint
+      type        : ActiveHinge
+      orientation : 90
+      children    :
+        1:
+          id          : Leg10
+          type        : FixedBrick
+          orientation : -90
+          children    :
+            1:
+              id          : Leg11Joint
+              type        : ActiveHinge
+              children    :
+                1:
+                  id          : Leg11
+                  type        : FixedBrick
+    2:
+      id          : Leg20Joint
+      type        : ActiveHinge
+      orientation : 90
+      children    :
+        1:
+          id          : Leg20
+          type        : FixedBrick
+          orientation : -90
+          children    :
+            1:
+              id          : Leg21Joint
+              type        : ActiveHinge
+              children    :
+                1:
+                  id          : Leg21
+                  type        : FixedBrick
+    3:
+      id          : Leg30Joint
+      type        : ActiveHinge
+      orientation : 90
+      children    :
+        1:
+          id          : Leg30
+          type        : FixedBrick
+          orientation : -90
+          children    :
+            1:
+              id          : Leg31Joint
+              type        : ActiveHinge
+              children    :
+                1:
+                  id          : Leg31
+                  type        : FixedBrick
+
+
+#brain:
+  # extra input neuron (bias)
+  #neurons     : { Core-hidden-0 }
+
+  # Here you specify the connections between neurons, as
+  # {"src": "src-id", "dst": "dst-id", "weight": float}
+  #connections : []       # Default: no connections
+
+  #params:
+  #  Core-hidden-0:
+  #    type        : Oscillator
+  #    period      : 0.8
+  #    phase_offset : 0.2
+  #    gain        : 1

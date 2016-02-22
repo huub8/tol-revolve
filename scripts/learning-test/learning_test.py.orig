@@ -7,6 +7,7 @@ import math
 import csv
 import logging
 import shutil
+from time import sleep
 
 from revolve.build.util import in_cm, in_mm
 from revolve.util import Time
@@ -174,6 +175,7 @@ class LearningManager(World):
         yield From(self.pause(False))
         print "### time now is {0}".format(self.last_time)
 
+<<<<<<< HEAD
         if not self.do_restore:
             bot_yaml = spider_yaml
             pose = Pose(position=Vector3(0, 0, 0))
@@ -194,6 +196,17 @@ class LearningManager(World):
                                        max_num_generations=1000)
 
             yield From(learner.initialize(world=self))
+=======
+        with open("../testBots/%s"%conf.testBot,'r') as yamlfile:
+            bot_yaml = yamlfile.read()
+
+        pose = Pose(position=Vector3(0, 0, 0))
+        bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
+        tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
+
+        robot = yield From(wait_for(self.insert_robot(tree, pose)))
+        print("new robot id = %d" % robot.robot.id)
+>>>>>>> 996bf44f6a42631eec4cde592ab1a1dd5c498ca2
 
             self.add_learner(learner)
 
