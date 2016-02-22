@@ -1,3 +1,4 @@
+import os
 import trollius
 from trollius import From, Return, Future
 from collections import deque
@@ -200,7 +201,9 @@ class RobotLearner:
             # first in pair must be the best of two:
             parent_pairs.append((parent_a, parent_b))
 
-        genotype_log_file = open("genotypes.log", "a")
+        log_file_path = os.path.dirname(os.path.abspath(__file__))+'/../../scripts/learning-test/genotypes.log'
+
+        genotype_log_file = open(log_file_path, "a")
         for pair in parent_pairs:
 
             print "\nSELECTED PARENTS:"

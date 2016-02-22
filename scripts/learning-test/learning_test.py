@@ -263,9 +263,9 @@ class LearningManager(World):
         # FOR DEBUG
         ###############################################
         # braim population size:
-        pop_size = 10
-        tournament_size = 8
-        evaluation_time = 10  # in simulation seconds
+        pop_size = 4
+        tournament_size = 2
+        evaluation_time = 2  # in simulation seconds
         ###############################################
 
         yield From(self.pause(False))
