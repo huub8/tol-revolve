@@ -264,7 +264,7 @@ class LearningManager(World):
         ###############################################
         # braim population size:
         pop_size = 10
-        tournament_size = 4
+        tournament_size = 8
         evaluation_time = 10  # in simulation seconds
         ###############################################
 
@@ -342,14 +342,13 @@ def run():
 
 
 def main():
-
     print "START"
 
     def handler(loop, context):
         exc = context['exception']
         if isinstance(exc, DisconnectError) or isinstance(exc, ConnectionResetError):
             print("Got disconnect / connection reset - shutting down.")
-            sys.exit(0)
+            sys.exit(1)
 
         raise context['exception']
 

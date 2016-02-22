@@ -10,14 +10,11 @@ from sdfbuilder import Pose, Model, Link, SDF
 # Revolve
 from revolve.util import multi_future, wait_for
 from revolve.angle import Tree
+
 # ToL
-from ..config import parser
-from ..manage import World
-from ..logging import logger, output_console
 from . import Timers
 from .encoding import Crossover, validate_genotype
 from .convert import NeuralNetworkParser
-
 
 
 class RobotLearner:
@@ -201,16 +198,24 @@ class RobotLearner:
             parent_b = selected[1]
 
             # first in pair must be the best of two:
-            parent_pairs.append((parent_a[0], parent_b[0]))
+            parent_pairs.append((parent_a, parent_b))
 
+        genotype_log_file = open("genotypes.log", "a")
         for pair in parent_pairs:
 
             print "\nSELECTED PARENTS:"
-            print str(pair[0]) + ", " + str(pair[1])
+            print str(pair[0][0]) + ", fitness = " + str(pair[0][1])
+            print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
+
+            genotype_log_file.write(pair[0][0].debug_string(True))
+            genotype_log_file.write("\nfitness = " + str(pair[0][1]) + "\n\n")
+
+            genotype_log_file.write(pair[1][0].debug_string(True))
+            genotype_log_file.write("\nfitness = " + str(pair[1][1]) + "\n\n")
 
             # apply crossover:
             print "applying crossover..."
-            child_genotype = Crossover.crossover(pair[0], pair[1])
+            child_genotype = Crossover.crossover(pair[0][0], pair[1][0])
             validate_genotype(child_genotype, "crossover created invalid genotype")
             print "crossover successful"
 
@@ -229,7 +234,7 @@ class RobotLearner:
             print "neuron parameters mutation successful"
 
 
-            if random.random() < 0.5: # FOR DEBUG : increased probability of structural mutations
+            if random.random() < 0.2: # this is probability of structural mutations
                 print "applying structural mutation..."
 
                 if len(child_genotype.connection_genes) == 0:
@@ -245,7 +250,6 @@ class RobotLearner:
                         validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype")
                         print "inserting new CONNECTION successful"
 
-
                     else:
                         print "inserting new NEURON..."
                         self.mutator.add_neuron_mutation(child_genotype)
@@ -259,6 +263,7 @@ class RobotLearner:
             #     print "structural mutation successful"
 
             self.evaluation_queue.append(child_genotype)
+        genotype_log_file.close()
 
 
     def select_for_tournament(self, candidates):
