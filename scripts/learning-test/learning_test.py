@@ -68,108 +68,12 @@ parser.add_argument(
     help="time of individual evaluation in simulation seconds"
 )
 
-
-
-spider_yaml = '''
----
-body:
-  id          : Core
-  type        : Core
-  children:
-    0:
-      id: Brick11
-      type: FixedBrick
-      children:
-        1:
-          id: Hinge11
-          type: ActiveHinge
-          children:
-            1:
-              id: Hinge12
-              type: ActiveHinge
-    1:
-      id: Brick21
-      type: FixedBrick
-      children:
-        1:
-          id: Hinge21
-          type: ActiveHinge
-          children:
-            1:
-              id: Hinge22
-              type: ActiveHinge
-    2:
-      id: Brick31
-      type: FixedBrick
-      children:
-        1:
-          id: Hinge31
-          type: ActiveHinge
-          children:
-            1:
-              id: Hinge32
-              type: ActiveHinge
-    3:
-      id: Brick41
-      type: FixedBrick
-      children:
-        1:
-          id: Hinge41
-          type: ActiveHinge
-          children:
-            1:
-              id: Hinge42
-              type: ActiveHinge
-
-'''
-
-snake_yaml = '''
----
-body:
-  id          : Core
-  type        : Core
-  children:
-    0:
-      id: Hinge11
-      type: FixedBrick
-      children:
-        1:
-          id: Hinge12
-          type: ActiveHinge
-          children:
-            1:
-              id: Hinge13
-              type: ActiveHinge
-              children:
-                1:
-                  id: Hinge14
-                  type: ActiveHinge
-                  children:
-                    1:
-                      id: Hinge15
-                      type: ActiveHinge
-    1:
-      id: Hinge21
-      type: FixedBrick
-      children:
-        1:
-          id: Hinge22
-          type: ActiveHinge
-          children:
-            1:
-              id: Hinge23
-              type: ActiveHinge
-              children:
-                1:
-                  id: Hinge24
-                  type: ActiveHinge
-                  children:
-                    1:
-                      id: Hinge25
-                      type: ActiveHinge
-
-'''
-
+parser.add_argument(
+    '--testBot',
+    default="gecko",
+    type=str,
+    help="robot morphology to test learning on"
+)
 
 class LearningManager(World):
     def __init__(self, conf, _private):
@@ -261,8 +165,9 @@ class LearningManager(World):
 
         print "### time now is {0}".format(self.last_time)
 
+        with open("../testBots/%s"%conf.testBot,'r') as yamlfile:
+            bot_yaml = yamlfile.read()
 
-        bot_yaml = spider_yaml
         pose = Pose(position=Vector3(0, 0, 0))
         bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
         tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
