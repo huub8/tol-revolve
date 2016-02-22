@@ -69,10 +69,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--testBot',
-    default="gecko",
+    '--test-bot',
     type=str,
-    help="robot morphology to test learning on"
+    help="path to file containing robot morphology to test learning on"
 )
 
 class LearningManager(World):
@@ -156,32 +155,38 @@ class LearningManager(World):
     @trollius.coroutine
     def run(self, conf):
 
-        # # braim population size:
-        # pop_size = conf.population_size
-        #
-        # tournament_size = conf.tournament_size
-        #
-        # evaluation_time = conf.eval_time  # in simulation seconds
+        # brain population size:
+        pop_size = conf.population_size
 
-        # FOR DEBUG
-        ###############################################
-        # braim population size:
-        pop_size = 4
-        tournament_size = 2
-        evaluation_time = 2  # in simulation seconds
-        ###############################################
+        tournament_size = conf.tournament_size
+
+        evaluation_time = conf.eval_time  # in simulation seconds
+
+        # # FOR DEBUG
+        # ###############################################
+        # # brain population size:
+        # pop_size = 4
+        # tournament_size = 2
+        # evaluation_time = 2  # in simulation seconds
+        # ###############################################
 
         yield From(self.pause(False))
         print "### time now is {0}".format(self.last_time)
 
         if not self.do_restore:
-            bot_yaml = spider_yaml
+
+            with open(conf.test_bot,'r') as yamlfile:
+                bot_yaml = yamlfile.read()
+
             pose = Pose(position=Vector3(0, 0, 0))
             bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
             tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
 
             robot = yield From(wait_for(self.insert_robot(tree, pose)))
-            print("new robot id = %d" % robot.robot.id)
+
+            print "population size set to {0}".format(pop_size)
+            print "tournament size set to {0}".format(tournament_size)
+            print "evaluation time set to {0}".format(evaluation_time)
 
             learner = RobotLearner(world=self,
                                        robot=robot,
