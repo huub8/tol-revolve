@@ -1,0 +1,221 @@
+body:
+  children:
+    1:
+      children:
+        1:
+          children:
+            1:
+              children:
+                1:
+                  children:
+                    2:
+                      children:
+                        1:
+                          id: Leg10
+                          label: ''
+                          orientation: 0
+                          params:
+                            blue: 0.5
+                            green: 0.5
+                            red: 0.5
+                          slot: 0
+                          type: FixedBrick
+                      id: Leg10Joint
+                      label: ''
+                      orientation: 0
+                      params:
+                        blue: 0.5
+                        green: 0.5
+                        red: 0.5
+                      slot: 0
+                      type: ActiveHinge
+                    3:
+                      children:
+                        1:
+                          id: Leg11
+                          label: ''
+                          orientation: 0
+                          params:
+                            blue: 0.5
+                            green: 0.5
+                            red: 0.5
+                          slot: 0
+                          type: FixedBrick
+                      id: Leg11Joint
+                      label: ''
+                      orientation: 0
+                      params:
+                        blue: 0.5
+                        green: 0.5
+                        red: 0.5
+                      slot: 0
+                      type: ActiveHinge
+                  id: Body1
+                  label: ''
+                  orientation: -90
+                  params:
+                    blue: 0.5
+                    green: 0.5
+                    red: 0.5
+                  slot: 0
+                  type: FixedBrick
+              id: BodyJoint1
+              label: ''
+              orientation: 90
+              params:
+                blue: 0.5
+                green: 0.5
+                red: 0.5
+              slot: 0
+              type: ActiveHinge
+          id: Body0
+          label: ''
+          orientation: -90
+          params:
+            blue: 0.5
+            green: 0.5
+            red: 0.5
+          slot: 0
+          type: FixedBrick
+      id: BodyJoint0
+      label: ''
+      orientation: 90
+      params:
+        blue: 0.5
+        green: 0.5
+        red: 0.5
+      slot: 0
+      type: ActiveHinge
+    2:
+      children:
+        1:
+          id: Leg00
+          label: ''
+          orientation: 0
+          params:
+            blue: 0.5
+            green: 0.5
+            red: 0.5
+          slot: 0
+          type: FixedBrick
+      id: Leg00Joint
+      label: ''
+      orientation: 0
+      params:
+        blue: 0.5
+        green: 0.5
+        red: 0.5
+      slot: 0
+      type: ActiveHinge
+    3:
+      children:
+        1:
+          id: Leg01
+          label: ''
+          orientation: 0
+          params:
+            blue: 0.5
+            green: 0.5
+            red: 0.5
+          slot: 0
+          type: FixedBrick
+      id: Leg01Joint
+      label: ''
+      orientation: 0
+      params:
+        blue: 0.5
+        green: 0.5
+        red: 0.5
+      slot: 0
+      type: ActiveHinge
+  id: Core
+  label: ''
+  orientation: 0
+  params:
+    blue: 0.5
+    green: 0.5
+    red: 0.5
+  type: Core
+brain:
+  connections: []
+  neurons:
+    BodyJoint0-out-0:
+      id: BodyJoint0-out-0
+      layer: output
+      part_id: BodyJoint0
+      type: Simple
+    BodyJoint1-out-0:
+      id: BodyJoint1-out-0
+      layer: output
+      part_id: BodyJoint1
+      type: Simple
+    Core-in-0:
+      id: Core-in-0
+      layer: input
+      part_id: Core
+      type: Input
+    Core-in-1:
+      id: Core-in-1
+      layer: input
+      part_id: Core
+      type: Input
+    Core-in-2:
+      id: Core-in-2
+      layer: input
+      part_id: Core
+      type: Input
+    Core-in-3:
+      id: Core-in-3
+      layer: input
+      part_id: Core
+      type: Input
+    Core-in-4:
+      id: Core-in-4
+      layer: input
+      part_id: Core
+      type: Input
+    Core-in-5:
+      id: Core-in-5
+      layer: input
+      part_id: Core
+      type: Input
+    Leg00Joint-out-0:
+      id: Leg00Joint-out-0
+      layer: output
+      part_id: Leg00Joint
+      type: Simple
+    Leg01Joint-out-0:
+      id: Leg01Joint-out-0
+      layer: output
+      part_id: Leg01Joint
+      type: Simple
+    Leg10Joint-out-0:
+      id: Leg10Joint-out-0
+      layer: output
+      part_id: Leg10Joint
+      type: Simple
+    Leg11Joint-out-0:
+      id: Leg11Joint-out-0
+      layer: output
+      part_id: Leg11Joint
+      type: Simple
+  params:
+    BodyJoint0-out-0:
+      bias: 0.0
+      gain: 0.5
+    BodyJoint1-out-0:
+      bias: 0.0
+      gain: 0.5
+    Leg00Joint-out-0:
+      bias: 0.0
+      gain: 0.5
+    Leg01Joint-out-0:
+      bias: 0.0
+      gain: 0.5
+    Leg10Joint-out-0:
+      bias: 0.0
+      gain: 0.5
+    Leg11Joint-out-0:
+      bias: 0.0
+      gain: 0.5
+id: 0

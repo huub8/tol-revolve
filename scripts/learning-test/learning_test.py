@@ -1,15 +1,8 @@
-import random
 import os
 import sys
-import logging
-import argparse
-import math
 import csv
 import logging
 import shutil
-
-from revolve.build.util import in_cm, in_mm
-from revolve.util import Time
 
 from pygazebo.pygazebo import DisconnectError
 from trollius.py33_exceptions import ConnectionResetError, ConnectionRefusedError
@@ -133,9 +126,6 @@ class LearningManager(World):
     @trollius.coroutine
     def get_snapshot_data(self):
         data = yield From(super(LearningManager, self).get_snapshot_data())
- #       for learner in self.learner_list:
- #           self.learner_data.append(learner.pack_data())
- #       data['learners'] = self.learner_data
         data['learners'] = self.learner_list
         data['innovation_number'] = self.mutator.innovation_number
         raise Return(data)
@@ -143,7 +133,6 @@ class LearningManager(World):
 
     def restore_snapshot(self, data):
         yield From(super(LearningManager, self).restore_snapshot(data))
-#        self.learner_data = data['learners']
         self.learner_list = data['learners']
         self.mutator.innovation_number = data['innovation_number']
 
@@ -202,16 +191,10 @@ class LearningManager(World):
 
             self.add_learner(learner)
 
-
         else:
-#            yield From(learner.initialize(world=self, data=self.learner_data[0]))
             print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
             print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
- #       else:
- #           yield From(learner.initialize(world=self))
 
-
-  #      self.add_learner(learner)
 
         # Request callback for the subscriber
         def callback(data):

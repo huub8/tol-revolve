@@ -20,8 +20,6 @@ from .convert import NeuralNetworkParser
 
 class RobotLearner:
 
-    # TODO: check correctness of fitness in gazebo (visually)
-
     def __init__(self, world, robot, body_spec, brain_spec, mutator,
                  population_size, tournament_size, evaluation_time, max_num_generations):
         self.robot = robot
@@ -81,6 +79,11 @@ class RobotLearner:
     def get_init_brains(self):
         init_genotype = self.robot_to_genotype(self.robot)
 
+        # FOR DEBUG
+        ##########################################
+        print "initial genotype:"
+        print init_genotype.debug_string(True)
+        ##########################################
         init_pop = []
         for _ in range(self.pop_size):
             mutated_genotype = init_genotype.copy()
@@ -237,7 +240,7 @@ class RobotLearner:
             print "neuron parameters mutation successful"
 
 
-            if random.random() < 0.2: # this is probability of structural mutations
+            if random.random() < 0.5: # this is probability of structural mutations
                 print "applying structural mutation..."
 
                 if len(child_genotype.connection_genes) == 0:
@@ -287,45 +290,3 @@ class RobotLearner:
     def robot_to_genotype(self, robot):
         pb_robot = robot.tree.to_robot()
         return self.nn_parser.brain_to_genotype(pb_robot.brain, self.mutator)
-
-
-    # for pickling for snapshot:
-    def pack_data(self):
-        data = {}
-        data['fitness'] = self.fitness
-        data['population_size'] = self.pop_size
-        data['tournament_size'] = self.tournament_size
-        data['evaluation_time'] = self.evaluation_time
-        data['generation_number'] = self.generation_number
-        data['max_generations'] = self.max_generations
-
-        data['robot'] = self.robot
-        data['timers'] = self.timers
-
-        data['brain_fitness'] = self.brain_fitness
-        data['active_brain'] = self.active_brain
-
-        data['evaluation_queue'] = self.evaluation_queue
-        data['brains_evaluated'] = self.total_brains_evaluated
-        data['last_position'] = self.last_position
-
-        return data
-
-
-    # for unpickling from snapshot:
-    def unpack_data(self, data):
-        self.robot = data['robot']
-        self.fitness = data['fitness']
-        self.pop_size = data['population_size']
-        self.tournament_size = data['tournament_size']
-        self.evaluation_time = data['evaluation_time']
-        self.timers = data['timers']
-
-        self.brain_fitness = data['brain_fitness']
-        self.generation_number = data['generation_number']
-        self.max_generations = data['max_generations']
-
-
-        self.evaluation_queue = data['evaluation_queue']
-        self.total_brains_evaluated = data['brains_evaluated']
-        self.last_position = data['last_position']
