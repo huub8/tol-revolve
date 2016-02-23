@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+<!-- Test mesh -->
+  <model name="tol_env">
+    <static>true</static>
+    <pose>0 0 0 1.57 0 0</pose>
+    <link name="ground">
+      <collision name="ground_col">
+        <geometry>
+          <mesh><uri>model://tol_env/meshes/arena.dae</uri></mesh>
+        </geometry>
+      </collision>
+      <visual name="ground_vis">
+        <cast_shadows>false</cast_shadows>
+        <geometry>
+          <mesh><uri>model://tol_env/meshes/arena.dae</uri></mesh>
+        </geometry>
+      </visual>
+    </link>
+
+
+    <link name="clinic">
+      <collision name="clinic_col">
+        <geometry>
+          <mesh><uri>model://tol_env/meshes/birth_clinic.dae</uri></mesh>
+        </geometry>
+      </collision>
+      <visual name="clinic_vis">
+        <cast_shadows>false</cast_shadows>
+        <geometry>
+          <mesh><uri>model://tol_env/meshes/birth_clinic.dae</uri></mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+<!-- END Test mesh -->
+</sdf>

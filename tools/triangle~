@@ -1,0 +1,20 @@
+#!/bin/bash
+# Runs gazebo with the correct plugin path
+WORLD=idemo.world
+CMD=gazebo
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+MODE=$NEMODEMO
+GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:`pwd`/../build GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:`pwd`/models $CMD -u $WORLD &
+GZ_PID=$!
+../../revolve/tools/analyzer/run-analyzer &
+ANALYZER_PID=$!
+sleep 2
+ACTUAL_ANALYZER_PID=`ps -ef | awk '$3 == '${ANALYZER_PID}' { print $2 } '`
+sleep 3
+python $DIR/../scripts/triangle.py $MODE &
+PY_PID=$!
+wait $GZ_PID
+kill ${ACTUAL_ANALYZER_PID}
+kill $(jobs -rp)
+wait $(jobs -rp) 2>/dev/null
+echo "Done."
