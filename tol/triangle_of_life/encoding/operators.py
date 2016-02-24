@@ -13,19 +13,11 @@ class Mutator:
         self.brain_spec = brain_spec
 
 
-    def mutate_neuron_params(self, genotype, probability):
+    def mutate_neuron_params(self, genotype, probability, sigma):
         """
         Each neuron gene is chosen to be mutated with probability.
         The parameter to be mutated is chosen from the set of parameters with equal probability.
         """
-
-        # # FOR DEBUG
-        # #########################################
-        # print "before mutation:"
-        # print genotype.debug_string()
-        # ##########################################
-
-
 
         for neuron_gene in genotype.neuron_genes:
             if random.random() < probability:
@@ -35,34 +27,36 @@ class Mutator:
                 # print 'mutating gene :{0}'.format(neuron_gene.neuron.neuron_id)
                 # ##################################
 
-                random_param_values = self.brain_spec.get(neuron_gene.neuron.neuron_type).\
-                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
-                if random_param_values:
-                    param_name, param_value = random.choice(random_param_values.items()) # choose one param to mutate
+                neuron_spec = self.brain_spec.get(neuron_gene.neuron.neuron_type)
+                neuron_params = neuron_spec.parameters
+
+                if neuron_params:
+                    param_name, param_tuple = random.choice(neuron_params.items())
+                    param_spec = param_tuple[1]
+                    param_value = neuron_gene.neuron.neuron_params[param_name]
+                    max_value = param_spec.max
+                    min_value = param_spec.min
+                    param_value += random.gauss(0, sigma)
+
+                    if param_value > max_value:
+                        if param_spec.max_inclusive:
+                            param_value = max_value
+                        else:
+                            param_value = max_value - param_spec.epsilon
+
+                    if param_value < min_value:
+                        if param_spec.min_inclusive:
+                            param_value = min_value
+                        else:
+                            param_value = min_value + param_spec.epsilon
 
                     # # FOR DEBUG
                     # ##################################
-                    # print 'mutating param :{0} -- new value = {1}'.format(param_name, param_value)
+                    # print 'mutating param: {0} -- old value = {1}, new value = {2}'.\
+                    #     format(param_name, neuron_gene.neuron.neuron_params[param_name], param_value)
                     # ##################################
 
-
                     neuron_gene.neuron.neuron_params[param_name] = param_value
-
-                # else:
-                #    # # FOR DEBUG
-                #    #  ##################################
-                #    #  print 'no params'
-                #    #  ##################################
-
-
-        # # FOR DEBUG
-        # #########################################
-        # print "after mutation:"
-        # print genotype.debug_string()
-        # ##########################################
-
-
-
 
 
     def mutate_weights(self, genotype, probability, sigma):

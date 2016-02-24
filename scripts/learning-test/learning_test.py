@@ -185,8 +185,14 @@ class LearningManager(World):
                                        population_size=pop_size,
                                        tournament_size=tournament_size,
                                        evaluation_time=evaluation_time, # simulation seconds
+                                       weight_mutation_probability=0.2,
+                                       weight_mutation_sigma=1,
+                                       param_mutation_probability=0.2,
+                                       param_mutation_sigma=1,
+                                       structural_mutation_probability=0.1,
                                        max_num_generations=1000)
 
+            # THIS IS IMPORTANT!
             yield From(learner.initialize(world=self))
 
             self.add_learner(learner)
@@ -228,8 +234,6 @@ def run():
 
     print "WORLD CREATED"
     yield From(world.run(conf))
-
-
 
 
 def main():

@@ -21,18 +21,14 @@ from .convert import NeuralNetworkParser
 class RobotLearner:
 
     def __init__(self, world, robot, body_spec, brain_spec, mutator,
-                 population_size, tournament_size, evaluation_time, max_num_generations):
+                 population_size, tournament_size, evaluation_time,
+                 weight_mutation_probability, weight_mutation_sigma,
+                 param_mutation_probability, param_mutation_sigma,
+                 structural_mutation_probability, max_num_generations):
         self.robot = robot
         self.active_brain = None
         self.fitness = 0
         self.last_position = Vector3(0,0,0)
-
-        self.pop_size = population_size
-        self.tournament_size = tournament_size
-        if self.tournament_size > self.pop_size:
-            self.tournament_size = self.pop_size
-
-        self.evaluation_time = evaluation_time
 
         self.brain_spec = brain_spec
         self.body_spec = body_spec
@@ -45,9 +41,27 @@ class RobotLearner:
         self.evaluation_queue = deque()
         self.brain_fitness = {}
         self.generation_number = 0
-        self.max_generations = max_num_generations
 
         self.total_brains_evaluated = 0
+
+        # experiment parameters:
+        self.pop_size = population_size
+        if self.pop_size < 2:
+            self.pop_size = 2
+
+        self.tournament_size = tournament_size
+        if self.tournament_size > self.pop_size:
+            self.tournament_size = self.pop_size
+        if self.tournament_size < 2:
+            self.tournament_size = 2
+
+        self.evaluation_time = evaluation_time
+        self.weight_mutation_probability = weight_mutation_probability
+        self.weight_mutation_sigma = weight_mutation_sigma
+        self.param_mutation_probability = param_mutation_probability
+        self.param_mutation_sigma = param_mutation_sigma
+        self.structural_mutation_probability = structural_mutation_probability
+        self.max_generations = max_num_generations
 
 
     @trollius.coroutine
@@ -88,9 +102,16 @@ class RobotLearner:
         for _ in range(self.pop_size):
             mutated_genotype = init_genotype.copy()
 
-            self.mutator.mutate_weights(genotype=mutated_genotype, probability=0.2, sigma=1)
+            self.mutator.mutate_weights(
+                genotype=mutated_genotype,
+                probability=self.weight_mutation_probability,
+                sigma=self.weight_mutation_sigma)
 
-            self.mutator.mutate_neuron_params(genotype=mutated_genotype, probability=0.2)
+            self.mutator.mutate_neuron_params(
+                genotype=mutated_genotype,
+                probability=self.param_mutation_probability,
+                sigma=self.param_mutation_sigma)
+
             init_pop.append(mutated_genotype)
 
         return init_pop
@@ -229,26 +250,35 @@ class RobotLearner:
             # apply mutations:
 
             print "applying weight mutations..."
-            self.mutator.mutate_weights(genotype=child_genotype, probability=0.2, sigma=1)
+            self.mutator.mutate_weights(
+                genotype=child_genotype,
+                probability=self.weight_mutation_probability,
+                sigma=self.weight_mutation_sigma)
             validate_genotype(child_genotype, "weight mutation created invalid genotype")
             print "weight mutation successful"
 
 
             print "applying neuron parameters mutations..."
-            self.mutator.mutate_neuron_params(genotype=child_genotype, probability=0.2)
+            self.mutator.mutate_neuron_params(
+                genotype=child_genotype,
+                probability=self.param_mutation_probability,
+                sigma=self.param_mutation_sigma)
             validate_genotype(child_genotype, "neuron parameters mutation created invalid genotype")
             print "neuron parameters mutation successful"
 
 
-            if random.random() < 0.5: # this is probability of structural mutations
+            # apply structural mutations:
+            if random.random() < self.structural_mutation_probability:
                 print "applying structural mutation..."
 
+                # if no connections, add connection
                 if len(child_genotype.connection_genes) == 0:
                     print "inserting new CONNECTION..."
                     self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
                     validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype")
                     print "inserting new CONNECTION successful"
 
+                # otherwise add connection or neuron with equal probability
                 else:
                     if random.random() < 0.5:
                         print "inserting new CONNECTION..."

@@ -146,7 +146,8 @@ class GeneticEncoding:
                 "hist_mark": conn_gene.historical_mark,
                 "enabled": conn_gene.enabled,
                 "from": conn_gene.mark_from,
-                "to": conn_gene.mark_to
+                "to": conn_gene.mark_to,
+                "weight": conn_gene.weight
             })
 
         return neuron_list, conn_list
@@ -170,7 +171,8 @@ class GeneticEncoding:
             deb_str += "neurons:\n"
             for n_g in n_gs:
                 deb_str += "("
-                deb_str += str(n_g["id"])
+                deb_str += str(n_g["id"]) + ", mark="
+                deb_str += str(n_g["hist_mark"])
                 deb_str += ")"
             deb_str += "\nconnections:\n"
             for c_g in c_gs:
