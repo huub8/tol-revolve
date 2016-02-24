@@ -49,9 +49,17 @@ parser.add_argument(
 
 parser.add_argument(
     '--tournament-size',
-    default=4,
+    default=6,
     type=int,
     help="number of individuals in the tournaments"
+)
+
+parser.add_argument(
+    '--num-children',
+    default=5,
+    type=int,
+    help="number of children born at each generation;"
+    "the new generation will consist of this many children and the rest will be filled with the best of parents"
 )
 
 parser.add_argument(
@@ -151,6 +159,8 @@ class LearningManager(World):
 
         evaluation_time = conf.eval_time  # in simulation seconds
 
+        num_children = conf.num_children
+
         # # FOR DEBUG
         # ###############################################
         # # brain population size:
@@ -173,9 +183,10 @@ class LearningManager(World):
 
             robot = yield From(wait_for(self.insert_robot(tree, pose)))
 
-            print "population size set to {0}".format(pop_size)
-            print "tournament size set to {0}".format(tournament_size)
-            print "evaluation time set to {0}".format(evaluation_time)
+            print "population size set to    {0}".format(pop_size)
+            print "tournament size set to    {0}".format(tournament_size)
+            print "number of children set to {0}".format(num_children)
+            print "evaluation time set to    {0}".format(evaluation_time)
 
             learner = RobotLearner(world=self,
                                        robot=robot,
@@ -184,12 +195,13 @@ class LearningManager(World):
                                        mutator=self.mutator,
                                        population_size=pop_size,
                                        tournament_size=tournament_size,
+                                       num_children=num_children,
                                        evaluation_time=evaluation_time, # simulation seconds
                                        weight_mutation_probability=0.2,
                                        weight_mutation_sigma=1,
                                        param_mutation_probability=0.2,
                                        param_mutation_sigma=1,
-                                       structural_mutation_probability=0.1,
+                                       structural_mutation_probability=0.8,
                                        max_num_generations=1000)
 
             # THIS IS IMPORTANT!

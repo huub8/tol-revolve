@@ -1,5 +1,5 @@
 #!/bin/bash
 # Start learning test with one robot with supervisor.
 
-python start.py --output-directory output --restore-directory restore --population-size 10 --tournament-size 5 --eval-time 30 --test-bot "../testBots/spider"
+python start.py --output-directory output --restore-directory restore --population-size 10 --num-children 5 --tournament-size 2 --eval-time 10 --test-bot "../testBots/spider"
 

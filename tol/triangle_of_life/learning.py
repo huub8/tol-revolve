@@ -21,7 +21,7 @@ from .convert import NeuralNetworkParser
 class RobotLearner:
 
     def __init__(self, world, robot, body_spec, brain_spec, mutator,
-                 population_size, tournament_size, evaluation_time,
+                 population_size, tournament_size, num_children, evaluation_time,
                  weight_mutation_probability, weight_mutation_sigma,
                  param_mutation_probability, param_mutation_sigma,
                  structural_mutation_probability, max_num_generations):
@@ -54,6 +54,8 @@ class RobotLearner:
             self.tournament_size = self.pop_size
         if self.tournament_size < 2:
             self.tournament_size = 2
+
+        self.num_children = num_children
 
         self.evaluation_time = evaluation_time
         self.weight_mutation_probability = weight_mutation_probability
@@ -177,7 +179,9 @@ class RobotLearner:
             print "%%%%%%%%%%%%%%%%%%\n\nEvaluated {0} brains".format(self.total_brains_evaluated)
             print "last evaluated: {0}".format(self.active_brain)
             print "queue length = {0}".format(len(self.evaluation_queue))
-            print "fitness (distance covered): {0}\n\n%%%%%%%%%%%%%%%%%%".format(self.fitness )
+            print "fitness (distance covered): {0}".format(self.fitness )
+            print "simulation time: {0}\n\n%%%%%%%%%%%%%%%%%%".format(world.last_time)
+
             self.brain_fitness[self.active_brain] = self.get_fitness()
             self.reset_fitness()
 
@@ -214,11 +218,27 @@ class RobotLearner:
         # do not store information about old generations:
         self.brain_fitness.clear()
 
-        parent_pairs = []
-        # select parents:
-        for _ in range(self.pop_size):
-            selected = self.select_for_tournament(brain_fitness_list)
+        # sort parents from best to worst:
+        brain_fitness_list = sorted(brain_fitness_list, key = lambda elem: elem[1], reverse=True)
 
+        # select the best ones:
+        brain_fitness_list_best = [brain_fitness_list[i] for i in range(self.pop_size - self.num_children)]
+
+        parent_pairs = []
+
+        # create children:
+        for _ in range(self.num_children):
+
+            # select for tournament only from the best parents:
+            selected = self.select_for_tournament(brain_fitness_list_best)
+
+            # # OR
+            
+            # # select for tournament from all parents:
+            # selected = self.select_for_tournament(brain_fitness_list)
+
+
+            # select 2 best parents from the tournament:
             parent_a = selected[0]
             parent_b = selected[1]
 
@@ -228,9 +248,9 @@ class RobotLearner:
         log_file_path = os.path.dirname(os.path.abspath(__file__))+'/../../scripts/learning-test/genotypes.log'
 
         genotype_log_file = open(log_file_path, "a")
-        for pair in parent_pairs:
+        for i, pair in enumerate(parent_pairs):
 
-            print "\nSELECTED PARENTS:"
+            print "\nchild #{0}\nSELECTED PARENTS:".format(str(i+1))
             print str(pair[0][0]) + ", fitness = " + str(pair[0][1])
             print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
 
@@ -292,13 +312,14 @@ class RobotLearner:
                         validate_genotype(child_genotype, "inserting new NEURON created invalid genotype")
                         print "inserting new NEURON successful"
 
-
-            # self.mutator.mutate_structure(genotype=child_genotype, probability=0.1)
-
-            # if validate_genotype(child_genotype, "structural mutation created invalid genotype"):
-            #     print "structural mutation successful"
-
             self.evaluation_queue.append(child_genotype)
+
+
+        # bringing the best parents into next generation:
+        for i in range(self.pop_size - self.num_children):
+            print "saving parent #{0}, fitness = {1}".format(str(i+1), brain_fitness_list_best[i][1])
+            self.evaluation_queue.append(brain_fitness_list_best[i][0])
+
         genotype_log_file.close()
 
 

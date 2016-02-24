@@ -126,9 +126,9 @@ class Mutator:
         # TODO make so that new neuron can be added anywhere along the path
         body_part_id = random.choice([neuron_from.body_part_id, neuron_to.body_part_id])
 
+        new_neuron_types = ["Simple", "Sigmoid", "Oscillator"]
 
-        new_neuron_type = "Simple"
-        # TODO Add option to generate neurons of other types
+        new_neuron_type = random.choice(new_neuron_types)
 
         new_neuron_params = self.brain_spec.get(new_neuron_type).\
                     get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
