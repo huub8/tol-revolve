@@ -36,8 +36,8 @@ class RobotLearner:
         self.nn_parser = NeuralNetworkParser(brain_spec)
         self.mutator = mutator
 
-        self.timers = Timers(['evaluate'], world.last_time)
- #       self.timers = Timers(['evaluate'], 0)
+ #       self.timers = Timers(['evaluate'], world.last_time)
+        self.timers = Timers(['evaluate'], 0)
         self.evaluation_queue = deque()
         self.brain_fitness = {}
         self.generation_number = 0
@@ -170,8 +170,18 @@ class RobotLearner:
         # print "timer time: " + str(self.timers.get_last_time('evaluate'))
         # ################################################
 
+
+
         # when evaluation is over:
         if self.timers.is_it_time('evaluate', self.evaluation_time, world.last_time):
+
+
+            # # FOR DEBUG
+            # ################################################
+            # print "world time: " + str(world.last_time)
+            # print "timer time: " + str(self.timers.get_last_time('evaluate'))
+            # ################################################
+
 
             print "Evaluation over"
             self.total_brains_evaluated += 1

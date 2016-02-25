@@ -19,7 +19,7 @@ supervisor = Supervisor(
     output_directory=args.output_directory,
     manager_args=sys.argv[1:],
     restore_directory=args.restore_directory,
-    gazebo_cmd="gazebo"
+    gazebo_cmd="gzserver"
 )
 
 supervisor.launch()
