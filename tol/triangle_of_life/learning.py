@@ -233,7 +233,7 @@ class RobotLearner:
             selected = self.select_for_tournament(brain_fitness_list_best)
 
             # # OR
-            
+
             # # select for tournament from all parents:
             # selected = self.select_for_tournament(brain_fitness_list)
 
