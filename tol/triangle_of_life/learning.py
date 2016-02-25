@@ -22,6 +22,7 @@ class RobotLearner:
 
     def __init__(self, world, robot, body_spec, brain_spec, mutator,
                  population_size, tournament_size, num_children, evaluation_time,
+                 evaluation_time_sigma,
                  weight_mutation_probability, weight_mutation_sigma,
                  param_mutation_probability, param_mutation_sigma,
                  structural_mutation_probability, max_num_generations):
@@ -58,6 +59,9 @@ class RobotLearner:
         self.num_children = num_children
 
         self.evaluation_time = evaluation_time
+        self.evaluation_time_sigma = evaluation_time_sigma
+        self.evaluation_time_actual = evaluation_time
+
         self.weight_mutation_probability = weight_mutation_probability
         self.weight_mutation_sigma = weight_mutation_sigma
         self.param_mutation_probability = param_mutation_probability
@@ -85,9 +89,8 @@ class RobotLearner:
 
         # pause world:
         yield From(world.pause(True))
-        self.active_brain = brain
         yield From(self.insert_brain(world, brain))
-
+        self.active_brain = brain
         # unpause world:
         yield From(world.pause(False))
 
@@ -142,16 +145,20 @@ class RobotLearner:
 
     def update_fitness(self):
         current_position = self.robot.last_position
-        diff = abs(self.last_position - current_position)
-        self.last_position = current_position
-        self.fitness += diff
+        # diff = abs(self.last_position - current_position)
+        # self.last_position = current_position
+        # self.fitness += diff
+
+        displacement = abs(Vector3(0,0,0) - current_position)
+        self.fitness = displacement
 
 
     def get_fitness(self):
-        if abs(self.last_position - Vector3(0,0,0)) > 0.001:
-            return self.fitness
-        else:
-            return 0
+        # if abs(self.last_position - Vector3(0,0,0)) > 0.001:
+        #     return self.fitness
+        # else:
+        #     return 0
+        return self.fitness
         
 
 
@@ -173,7 +180,7 @@ class RobotLearner:
 
 
         # when evaluation is over:
-        if self.timers.is_it_time('evaluate', self.evaluation_time, world.last_time):
+        if self.timers.is_it_time('evaluate', self.evaluation_time_actual, world.last_time):
 
 
             # # FOR DEBUG
@@ -190,10 +197,10 @@ class RobotLearner:
             print "last evaluated: {0}".format(self.active_brain)
             print "queue length = {0}".format(len(self.evaluation_queue))
             print "fitness (distance covered): {0}".format(self.fitness )
+            print "evaluation time was {0}s".format(self.evaluation_time_actual)
             print "simulation time: {0}\n\n%%%%%%%%%%%%%%%%%%".format(world.last_time)
 
-            self.brain_fitness[self.active_brain] = self.get_fitness()
-            self.reset_fitness()
+            self.brain_fitness[self.active_brain] = self.get_fitness() / self.evaluation_time_actual
 
             # make snapshot (freezes when evaluation queue is empty:
             yield From(world.create_snapshot())
@@ -205,12 +212,22 @@ class RobotLearner:
                 self.produce_new_generation()
                 self.generation_number += 1
 
-
             # continue evaluating brains from the queue:
-            next_brain = self.evaluation_queue.popleft()
+            next_brain = self.evaluation_queue[0]
             yield From(self.activate_brain(world, next_brain))
 
+            self.evaluation_queue.popleft()
+
             self.timers.reset('evaluate', world.last_time)
+
+            self.reset_fitness()
+            # randomize evaluation time:
+            self.evaluation_time_actual = self.evaluation_time + \
+                        random.gauss(0, self.evaluation_time_sigma)
+
+            if self.evaluation_time_actual < 0:
+                self.evaluation_time_actual = 0.5
+
 
         # continue evaluation:
         self.update_fitness()
