@@ -37,43 +37,20 @@ from tol.triangle_of_life.encoding import Mutator, Crossover
 output_console()
 logger.setLevel(logging.DEBUG)
 
-parent_color = (1, 0, 0, 0.5)
-child_color = (0, 1, 0, 0.5)
 
 parser.add_argument(
-    '--population-size',
-    default=10,
-    type=int,
-    help="number of individuals in brain population"
-)
-
-parser.add_argument(
-    '--tournament-size',
-    default=6,
-    type=int,
-    help="number of individuals in the tournaments"
-)
-
-parser.add_argument(
-    '--num-children',
-    default=5,
-    type=int,
-    help="number of children born at each generation;"
-    "the new generation will consist of this many children and the rest will be filled with the best of parents"
-)
-
-parser.add_argument(
-    '--eval-time',
-    default=15,
-    type=float,
-    help="time of individual evaluation in simulation seconds"
-)
-
-parser.add_argument(
-    '--test-bot',
+    '--robot',
     type=str,
-    help="path to file containing robot morphology to test learning on"
+    help="path to YAML file containing robot morphology"
 )
+
+parser.add_argument(
+    '--genotype',
+    type=str,
+    default=None,
+    help="path to YAML file containing brain genotype"
+)
+
 
 class LearningManager(World):
     def __init__(self, conf, _private):
@@ -147,14 +124,6 @@ class LearningManager(World):
 
     def add_learner(self, learner):
         self.learner_list.append(learner)
-
-
-    def log_info(self, out_string):
-        if self.output_directory:
-            genotype_log_filename = os.path.join(self.output_directory, 'genotypes.log')
-            genotype_log_file = open(genotype_log_filename, "a")
-            genotype_log_file.write(out_string)
-            genotype_log_file.close()
 
 
     @trollius.coroutine
@@ -235,7 +204,7 @@ class LearningManager(World):
         # run loop:
         while True:
             for learner in self.learner_list:
-                result = yield From(learner.update(self, self.log_info))
+                result = yield From(learner.update(self))
 
 
 

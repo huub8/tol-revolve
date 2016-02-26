@@ -164,7 +164,7 @@ class RobotLearner:
 
 
     @trollius.coroutine
-    def update(self, world):
+    def update(self, world, logging_callback = None):
         """
         this method should be called from the main loop
         it returns True if learning is over
@@ -210,7 +210,7 @@ class RobotLearner:
             if len(self.evaluation_queue) == 0:
 
                 # this method fills the evaluation queue with new brains:
-                self.produce_new_generation()
+                self.produce_new_generation(logging_callback)
                 self.generation_number += 1
 
             # continue evaluating brains from the queue:
@@ -241,7 +241,7 @@ class RobotLearner:
             raise Return(False)
 
 
-    def produce_new_generation(self):
+    def produce_new_generation(self, logging_callback = None):
         brain_fitness_list = [(br, fit) for br, fit in self.brain_fitness.items()]
         # do not store information about old generations:
         self.brain_fitness.clear()
@@ -273,20 +273,11 @@ class RobotLearner:
             # first in pair must be the best of two:
             parent_pairs.append((parent_a, parent_b))
 
-        log_file_path = os.path.dirname(os.path.abspath(__file__))+'/../../scripts/learning-test/genotypes.log'
-
-        genotype_log_file = open(log_file_path, "a")
         for i, pair in enumerate(parent_pairs):
 
             print "\nchild #{0}\nSELECTED PARENTS:".format(str(i+1))
             print str(pair[0][0]) + ", fitness = " + str(pair[0][1])
             print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
-
-            # genotype_log_file.write(pair[0][0].debug_string(True))
-            # genotype_log_file.write("\nfitness = " + str(pair[0][1]) + "\n\n")
-            #
-            # genotype_log_file.write(pair[1][0].debug_string(True))
-            # genotype_log_file.write("\nfitness = " + str(pair[1][1]) + "\n\n")
 
             # apply crossover:
             print "applying crossover..."
@@ -348,14 +339,16 @@ class RobotLearner:
             print "saving parent #{0}, fitness = {1}".format(str(i+1), brain_fitness_list_best[i][1])
             self.evaluation_queue.append(brain_fitness_list_best[i][0])
 
-        # Log best 3 genotypes in this generation:
-        genotype_log_file.write("generation #{0}\n".format(self.generation_number))
-        for i in range(3):
-            genotype_log_file.write("fitness = {0}\n".format(brain_fitness_list[i][1]))
-            genotype_log_file.write(brain_fitness_list[i][0].to_yaml())
-            genotype_log_file.write("\n")
+        if logging_callback:
+            out_string = ""
+            # Log best 3 genotypes in this generation:
+            out_string += "generation #{0}\n".format(self.generation_number)
+            for i in range(3):
+                out_string += "fitness = {0}\n".format(brain_fitness_list[i][1])
+                out_string += brain_fitness_list[i][0].to_yaml()
+                out_string += "\n"
+            logging_callback(out_string)
 
-        genotype_log_file.close()
 
 
     def select_for_tournament(self, candidates):
