@@ -18,6 +18,7 @@ from .encoding import Crossover, validate_genotype
 from .convert import NeuralNetworkParser
 
 
+
 class RobotLearner:
 
     def __init__(self, world, robot, body_spec, brain_spec, mutator,
@@ -281,11 +282,11 @@ class RobotLearner:
             print str(pair[0][0]) + ", fitness = " + str(pair[0][1])
             print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
 
-            genotype_log_file.write(pair[0][0].debug_string(True))
-            genotype_log_file.write("\nfitness = " + str(pair[0][1]) + "\n\n")
-
-            genotype_log_file.write(pair[1][0].debug_string(True))
-            genotype_log_file.write("\nfitness = " + str(pair[1][1]) + "\n\n")
+            # genotype_log_file.write(pair[0][0].debug_string(True))
+            # genotype_log_file.write("\nfitness = " + str(pair[0][1]) + "\n\n")
+            #
+            # genotype_log_file.write(pair[1][0].debug_string(True))
+            # genotype_log_file.write("\nfitness = " + str(pair[1][1]) + "\n\n")
 
             # apply crossover:
             print "applying crossover..."
@@ -346,6 +347,13 @@ class RobotLearner:
         for i in range(self.pop_size - self.num_children):
             print "saving parent #{0}, fitness = {1}".format(str(i+1), brain_fitness_list_best[i][1])
             self.evaluation_queue.append(brain_fitness_list_best[i][0])
+
+        # Log best 3 genotypes in this generation:
+        genotype_log_file.write("generation #{0}\n".format(self.generation_number))
+        for i in range(3):
+            genotype_log_file.write("fitness = {0}\n".format(brain_fitness_list[i][1]))
+            genotype_log_file.write(brain_fitness_list[i][0].to_yaml())
+            genotype_log_file.write("\n")
 
         genotype_log_file.close()
 

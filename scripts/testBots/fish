@@ -6,7 +6,7 @@ body:
     0:
       id          : Leg00Joint
       type        : ActiveHinge
-      orientation : 90
+      orientation : -90
       children    :
         1:
           id          : Leg00

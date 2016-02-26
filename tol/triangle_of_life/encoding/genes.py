@@ -1,3 +1,4 @@
+import yaml
 from copy import copy, deepcopy
 
 
@@ -8,6 +9,9 @@ def validate_genotype(genotype, err_message):
         raise RuntimeError
     return True
 
+
+def unicode_representer(dumper, data):
+    return dumper.represent_scalar(u'tag:yaml.org,2002:str', data)
 
 
 class Neuron:
@@ -137,6 +141,7 @@ class GeneticEncoding:
                 "id": neuron.neuron_id,
                 "layer": neuron.layer,
                 "type": neuron.neuron_type,
+                "part_id": neuron.body_part_id,
                 "params": neuron.neuron_params
             })
 
@@ -183,6 +188,15 @@ class GeneticEncoding:
                 deb_str += "]"
 
         return deb_str
+
+
+    def to_yaml(self):
+        neuron_genes, conn_genes = self.to_lists()
+        yaml.add_representer(unicode, unicode_representer)
+        yaml_brain = {}
+        yaml_brain['neurons'] = neuron_genes
+        yaml_brain['connections'] = conn_genes
+        return yaml.dump(yaml_brain, default_flow_style=False)
 
 
     def copy(self):
