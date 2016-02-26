@@ -31,6 +31,7 @@ from tol.logging import logger, output_console
 from tol.spec import get_body_spec, get_brain_spec
 from tol.triangle_of_life import RobotLearner
 from tol.triangle_of_life.encoding import Mutator, Crossover
+from tol.triangle_of_life.convert import NeuralNetworkParser, yaml_to_genotype
 
 
 # Log output to console
@@ -68,25 +69,39 @@ def run():
     body_spec = get_body_spec(conf)
     brain_spec = get_brain_spec(conf)
 
+
+    print "OPENING FILES!!!!!!!!!!!!!!!!!!!"
     with open(conf.robot_file,'r') as robot_file:
         bot_yaml = robot_file.read()
     with open (conf.genotype_file, 'r') as gen_file:
         genotype_yaml = gen_file.read()
 
+    print "CREATING WORLD!!!!!!!!!!!!!!!!!!!"
     world = yield From(World.create(conf))
-    yield From(world.Pause(True))
+    yield From(world.pause(True))
 
     pose = Pose(position=Vector3(0, 0, 0))
+
+    # convert YAML stream to protobuf body:
     robot_body_pb = yaml_to_robot(body_spec, brain_spec, bot_yaml).body
 
-    robot_brain_genotype = yaml_to_genotype(body_spec, brain_spec, genotype_yaml)
+
+    # convert YAML stream to genotype:
+    mutator = Mutator(brain_spec)
+    robot_brain_genotype = yaml_to_genotype(genotype_yaml, mutator)
+
+    # convert genotype to protobuf brain:
     nn_parser = NeuralNetworkParser(brain_spec)
     robot_brain_pb = nn_parser.genotype_to_brain(robot_brain_genotype)
 
-    tree = Tree.from_body_brain(robot_body_pb, robot_brain_pb, self.body_spec)
+    tree = Tree.from_body_brain(robot_body_pb, robot_brain_pb, body_spec)
 
+    print "INSERTING ROBOT!!!!!!!!!!!!!!!!!!!!!!"
     robot = yield From(wait_for(world.insert_robot(tree, pose)))
-    yield From(world.Pause(False))
+    yield From(world.pause(False))
+
+    while (True):
+        continue
 
 
 

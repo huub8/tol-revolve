@@ -1,0 +1,50 @@
+#!/bin/bash
+# Runs gazebo with the correct plugin path
+WORLD=viewer.world
+CMD=gazebo
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:`pwd`/../../build GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:`pwd`/../../tools/models $CMD -u $WORLD &
+GZ_PID=$!
+
+echo $GAZEBO_PLUGIN_PATH
+echo $GAZEBO_MODEL_PATH
+echo 'GZ_PID='$GZ_PID
+
+echo "DIR="$DIR
+
+../../../revolve/tools/analyzer/run-analyzer &
+ANALYZER_PID=$!
+
+sleep 2
+
+ACTUAL_ANALYZER_PID=`ps -ef | awk '$3 == '${ANALYZER_PID}' { print $2 } '`
+
+sleep 3
+
+# get body filename from body dir
+for f in $DIR/body/*
+do
+    BODY_FILE=$f
+done
+
+
+
+# get brain filename from brain dir
+for f in $DIR/brain/*
+do
+    BRAIN_FILE=$f
+done
+echo "BODY FILE="$BODY_FILE
+echo "BRAIN FILE="$BRAIN_FILE
+
+
+python $DIR/robot_viewer.py --robot-file $BODY_FILE --genotype-file $BRAIN_FILE &
+PY_PID=$!
+
+echo 'PY_PID='$PY_PID
+
+wait $GZ_PID
+kill ${ACTUAL_ANALYZER_PID}
+kill $(jobs -rp)
+wait $(jobs -rp) 2>/dev/null
+echo "Done."
