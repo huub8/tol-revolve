@@ -1,4 +1,5 @@
 # Revolve
+import yaml
 from revolve.spec.msgs import Body, BodyPart, NeuralNetwork
 from revolve.spec.exception import err
 
@@ -51,26 +52,7 @@ class NeuralNetworkParser:
         return brain
 
 
-    # def _parse_neuron_genes(self, genotype, brain):
-    #     neuron_map = {}
-    #     for neuron_gene in genotype.neuron_genes:
-    #         if neuron_gene.enabled:
-    #             neuron_info = neuron_gene.neuron
-    #             neuron_map[neuron_info] = neuron_info.neuron_id
-    #
-    #             pb_neuron = brain.neuron.add()
-    #             pb_neuron.id = neuron_info.neuron_id
-    #             pb_neuron.layer = neuron_info.layer
-    #             pb_neuron.type = neuron_info.neuron_type
-    #             pb_neuron.partId = neuron_info.body_part_id
-    #
-    #             neuron_spec = self.spec.get(neuron_info.neuron_type)
-    #             serialized_params = neuron_spec.serialize_params(neuron_info.neuron_params)
-    #             for param_value in serialized_params:
-    #                 param = pb_neuron.param.add()
-    #                 param.value = param_value
-    #
-    #     return neuron_map
+
 
 
     def _parse_neuron_genes(self, genotype, brain):
@@ -150,3 +132,5 @@ class NeuralNetworkParser:
             })
 
         return conn_descriptions
+
+#def yaml_to_genotype(yaml_obj):

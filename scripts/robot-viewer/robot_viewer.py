@@ -39,172 +39,17 @@ logger.setLevel(logging.DEBUG)
 
 
 parser.add_argument(
-    '--robot',
+    '--robot-file',
     type=str,
     help="path to YAML file containing robot morphology"
 )
 
 parser.add_argument(
-    '--genotype',
+    '--genotype-file',
     type=str,
     default=None,
     help="path to YAML file containing brain genotype"
 )
-
-
-class LearningManager(World):
-    def __init__(self, conf, _private):
-        super(LearningManager, self).__init__(conf, _private)
-
-        self.fitness_filename = None
-        self.fitness_file = None
-        self.write_fitness = None
-        self.learner_list = []
-        self.learner_data = []
-
-
-        self.body_spec = get_body_spec(conf)
-        self.brain_spec = get_brain_spec(conf)
-        self.mutator = Mutator(self.brain_spec)
-
-        if self.output_directory:
-            self.fitness_filename = os.path.join(self.output_directory, 'fitness.csv')
-
-            if self.do_restore:
-                shutil.copy(self.fitness_filename + '.snapshot', self.fitness_filename)
-                self.fitness_file = open(self.fitness_filename, 'ab', buffering=1)
-                self.write_fitness = csv.writer(self.fitness_file, delimiter=',')
-            else:
-                self.fitness_file = open(self.fitness_filename, 'wb', buffering=1)
-                self.write_fitness = csv.writer(self.fitness_file, delimiter=',')
-                self.write_fitness.writerow(['t_sim', 'robot_id', 'age', 'displacement',
-                                             'vel', 'dvel', 'fitness'])
-
-
-    @classmethod
-    @trollius.coroutine
-    def create(cls, conf):
-        """
-        Coroutine to instantiate a Revolve.Angle WorldManager
-        :param conf:
-        :return:
-        """
-        self = cls(_private=cls._PRIVATE, conf=conf)
-        yield From(self._init())
-        raise Return(self)
-
-
-    @trollius.coroutine
-    def create_snapshot(self):
-        """
-        Copy the fitness file in the snapshot
-        :return:
-        """
-        ret = yield From(super(LearningManager, self).create_snapshot())
-        if not ret:
-            raise Return(ret)
-
-        self.fitness_file.flush()
-        shutil.copy(self.fitness_filename, self.fitness_filename + '.snapshot')
-
-
-    @trollius.coroutine
-    def get_snapshot_data(self):
-        data = yield From(super(LearningManager, self).get_snapshot_data())
-        data['learners'] = self.learner_list
-        data['innovation_number'] = self.mutator.innovation_number
-        raise Return(data)
-
-
-    def restore_snapshot(self, data):
-        yield From(super(LearningManager, self).restore_snapshot(data))
-        self.learner_list = data['learners']
-        self.mutator.innovation_number = data['innovation_number']
-
-
-    def add_learner(self, learner):
-        self.learner_list.append(learner)
-
-
-    @trollius.coroutine
-    def run(self, conf):
-
-        # brain population size:
-        pop_size = conf.population_size
-
-        tournament_size = conf.tournament_size
-
-        evaluation_time = conf.eval_time  # in simulation seconds
-
-        num_children = conf.num_children
-
-        # # FOR DEBUG
-        # ###############################################
-        # # brain population size:
-        # pop_size = 4
-        # tournament_size = 2
-        # evaluation_time = 2  # in simulation seconds
-        # ###############################################
-
-        yield From(self.pause(False))
-        print "### time now is {0}".format(self.last_time)
-
-        if not self.do_restore:
-
-            with open(conf.test_bot,'r') as yamlfile:
-                bot_yaml = yamlfile.read()
-
-            pose = Pose(position=Vector3(0, 0, 0))
-            bot = yaml_to_robot(self.body_spec, self.brain_spec, bot_yaml)
-            tree = Tree.from_body_brain(bot.body, bot.brain, self.body_spec)
-
-            robot = yield From(wait_for(self.insert_robot(tree, pose)))
-
-            print "population size set to    {0}".format(pop_size)
-            print "tournament size set to    {0}".format(tournament_size)
-            print "number of children set to {0}".format(num_children)
-            print "evaluation time set to    {0}".format(evaluation_time)
-
-            learner = RobotLearner(world=self,
-                                       robot=robot,
-                                       body_spec=self.body_spec,
-                                       brain_spec=self.brain_spec,
-                                       mutator=self.mutator,
-                                       population_size=pop_size,
-                                       tournament_size=tournament_size,
-                                       num_children=num_children,
-                                       evaluation_time=evaluation_time, # simulation seconds
-                                       evaluation_time_sigma=1,         # for eval. time randomization
-                                       weight_mutation_probability=0.8,
-                                       weight_mutation_sigma=1,
-                                       param_mutation_probability=0.8,
-                                       param_mutation_sigma=1,
-                                       structural_mutation_probability=0.8,
-                                       max_num_generations=1000)
-
-            # THIS IS IMPORTANT!
-            yield From(learner.initialize(world=self))
-
-            self.add_learner(learner)
-
-        else:
-            print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
-            print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
-
-
-        # Request callback for the subscriber
-        def callback(data):
-            req = Request()
-            req.ParseFromString(data)
-
-        subscriber = self.manager.subscribe(
-            '/gazebo/default/request', 'gazebo.msgs.Request', callback)
-        yield From(subscriber.wait_for_connection())
-
-        # run loop:
-        while True:
-            for learner in self.learner_list:
-                result = yield From(learner.update(self))
 
 
 
@@ -220,10 +65,29 @@ def run():
     conf.age_cutoff = 99999
     conf.pose_update_frequency = 20
 
-    world = yield From(LearningManager.create(conf))
+    body_spec = get_body_spec(conf)
+    brain_spec = get_brain_spec(conf)
 
-    print "WORLD CREATED"
-    yield From(world.run(conf))
+    with open(conf.robot_file,'r') as robot_file:
+        bot_yaml = robot_file.read()
+    with open (conf.genotype_file, 'r') as gen_file:
+        genotype_yaml = gen_file.read()
+
+    world = yield From(World.create(conf))
+    yield From(world.Pause(True))
+
+    pose = Pose(position=Vector3(0, 0, 0))
+    robot_body_pb = yaml_to_robot(body_spec, brain_spec, bot_yaml).body
+
+    robot_brain_genotype = yaml_to_genotype(body_spec, brain_spec, genotype_yaml)
+    nn_parser = NeuralNetworkParser(brain_spec)
+    robot_brain_pb = nn_parser.genotype_to_brain(robot_brain_genotype)
+
+    tree = Tree.from_body_brain(robot_body_pb, robot_brain_pb, self.body_spec)
+
+    robot = yield From(wait_for(world.insert_robot(tree, pose)))
+    yield From(world.Pause(False))
+
 
 
 def main():
