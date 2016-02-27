@@ -87,8 +87,7 @@ def run():
 
 
     # convert YAML stream to genotype:
-    mutator = Mutator(brain_spec)
-    robot_brain_genotype = yaml_to_genotype(genotype_yaml, mutator)
+    robot_brain_genotype = yaml_to_genotype(genotype_yaml, brain_spec)
 
     # convert genotype to protobuf brain:
     nn_parser = NeuralNetworkParser(brain_spec)

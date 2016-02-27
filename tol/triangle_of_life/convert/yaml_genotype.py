@@ -4,7 +4,7 @@ from revolve.spec.msgs import Body, BodyPart, NeuralNetwork
 from revolve.spec.exception import err
 
 # ToL
-from ..encoding import GeneticEncoding, Neuron
+from ..encoding import GeneticEncoding, Neuron, NeuronGene, ConnectionGene, Mutator
 
 
 
@@ -46,17 +46,80 @@ def parse_connections(connections, genotype, mutator, neuron_marks):
                                    weight=weight,
                                    genotype=genotype)
 
+def get_neuron_genes(neurons):
+    '''
+    This method parses neurons keeping their original historical marks
+    :param neurons:
+    :return:
+    '''
+
+    neuron_genes = []
+    for neuron_info in neurons:
+        id = neuron_info['id']
+        layer = neuron_info['layer']
+        neuron_type = neuron_info['type']
+        part_id = neuron_info['part_id']
+        params = neuron_info['params']
+        mark = neuron_info['hist_mark']
+        enabled = neuron_info['enabled']
+
+        neuron =  Neuron(
+                neuron_id=id,
+                layer=layer,
+                neuron_type=neuron_type,
+                body_part_id=part_id,
+                neuron_params=params)
+
+        neuron_gene = NeuronGene(neuron=neuron, innovation_number=mark, enabled=enabled)
+        neuron_genes.append(neuron_gene)
+    return neuron_genes
 
 
+def get_connection_genes(connections):
 
-def yaml_to_genotype(yaml_stream, mutator):
+    '''
+    This method parses connections keeping their original historical marks
+    :param connections:
+    :return:
+    '''
+
+    conn_genes = []
+    for conn_info in connections:
+        enabled = conn_info['enabled']
+        hist_mark = conn_info['hist_mark']
+        from_mark = conn_info['from']
+        to_mark = conn_info['to']
+        weight = conn_info['weight']
+
+        connection_gene = ConnectionGene(
+            mark_from=from_mark,
+            mark_to=to_mark,
+            weight=weight,
+            innovation_number=hist_mark,
+            enabled=enabled
+        )
+        conn_genes.append(connection_gene)
+    return conn_genes
+
+
+def yaml_to_genotype(yaml_stream, brain_spec, keep_historical_marks=False):
     obj = yaml.load(yaml_stream)
+    genotype = GeneticEncoding()
     neurons = obj['neurons']
     connections = obj['connections']
 
-    genotype = GeneticEncoding()
-    neuron_marks = parse_neurons(neurons, genotype, mutator)
-    parse_connections(connections, genotype, mutator, neuron_marks)
+    if keep_historical_marks:
+        neuron_genes = get_neuron_genes(neurons)
+        connection_genes = get_connection_genes(connections)
+        for neuron_gene in neuron_genes:
+            genotype.add_neuron_gene(neuron_gene)
+        for connection_gene in connection_genes:
+            genotype.add_connection_gene(connection_gene)
+
+    else:
+        mutator = Mutator(brain_spec)
+        neuron_marks = parse_neurons(neurons, genotype, mutator)
+        parse_connections(connections, genotype, mutator, neuron_marks)
     return genotype
 
 

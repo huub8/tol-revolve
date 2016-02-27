@@ -121,12 +121,18 @@ class GeneticEncoding:
     
     
     @staticmethod
-    def get_similarity(genotype1, genotype2, excess_coef=1, disjoint_coef=1, weight_diff_coef=1):
-        excess_num, disjoint_num = get_excess_disjoint(genotype1, genotype2)
+    def get_dissimilarity(genotype1, genotype2, excess_coef=1, disjoint_coef=1, weight_diff_coef=1):
+        excess_num, disjoint_num = GeneticEncoding.get_excess_disjoint(genotype1, genotype2)
         num_genes = max(genotype1.num_genes(), genotype2.num_genes())
-        similarity = (disjoint_coef * disjoint_num + excess_coef * excess_num) / num_genes
-        
-        return similarity
+        dissimilarity = float(disjoint_coef * disjoint_num + excess_coef * excess_num) / float(num_genes)
+
+        # # FOR DEBUG:
+        # ############################
+        # print "disjoint = {0}".format(disjoint_num)
+        # print "excess   = {0}".format(excess_num)
+        # ############################
+
+        return dissimilarity
         
         
     @staticmethod
@@ -137,17 +143,11 @@ class GeneticEncoding:
         genes_sorted2 = sorted(genotype2.neuron_genes + genotype2.connection_genes,
                                key = lambda gene: gene.historical_mark)
 
-        num_genes1 = len(genes_sorted1)
-        num_genes2 = len(genes_sorted2)
-
         min_mark1 = genes_sorted1[0].historical_mark
         max_mark1 = genes_sorted1[-1].historical_mark
 
         min_mark2 = genes_sorted2[0].historical_mark
         max_mark2 = genes_sorted2[-1].historical_mark
-
-        min_mark = min(min_mark1, min_mark2)
-        max_mark = max(max_mark1, max_mark2)
         
         pairs = GeneticEncoding.get_pairs(genes_sorted1, genes_sorted2)
     
@@ -155,6 +155,13 @@ class GeneticEncoding:
         disjoint_num = 0
         
         for pair in pairs:
+
+            # # FOR DEBUG:
+            # ############################
+            # print "{0} :: {1}".format((pair[0].historical_mark if pair[0] else 'none'),
+            #                           (pair[1].historical_mark if pair[1] else 'none'))
+            # ############################
+
             if pair[0] and not pair[1]:
                 mark = pair[0].historical_mark
                 if mark > (min_mark2 - 1) and mark < (max_mark2 + 1):
@@ -215,9 +222,6 @@ class GeneticEncoding:
             
         return gene_pairs
 
-
-
-        return num_disjoint
 
     def find_gene_by_mark(self, mark):
         for gene in self.neuron_genes + self.connection_genes:
