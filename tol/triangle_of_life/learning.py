@@ -14,7 +14,7 @@ from revolve.angle import Tree
 
 # ToL
 from . import Timers
-from .encoding import Crossover, validate_genotype
+from .encoding import Crossover, GeneticEncoding, validate_genotype
 from .convert import NeuralNetworkParser
 
 
@@ -26,7 +26,8 @@ class RobotLearner:
                  evaluation_time_sigma,
                  weight_mutation_probability, weight_mutation_sigma,
                  param_mutation_probability, param_mutation_sigma,
-                 structural_mutation_probability, max_num_generations):
+                 structural_mutation_probability, max_num_generations,
+                 speciation_threshold):
         self.robot = robot
         self.active_brain = None
         self.fitness = 0
@@ -69,6 +70,8 @@ class RobotLearner:
         self.param_mutation_sigma = param_mutation_sigma
         self.structural_mutation_probability = structural_mutation_probability
         self.max_generations = max_num_generations
+
+        self.speciation_threshold = speciation_threshold
 
 
     @trollius.coroutine
@@ -208,6 +211,8 @@ class RobotLearner:
 
             # if all brains are evaluated, produce new generation:
             if len(self.evaluation_queue) == 0:
+                # distribute fitness based on similarity:
+                self.share_fitness()
 
                 # this method fills the evaluation queue with new brains:
                 self.produce_new_generation(logging_callback)
@@ -241,6 +246,20 @@ class RobotLearner:
             raise Return(False)
 
 
+    def share_fitness(self):
+        new_fitness = {}
+
+        for cur_brain, cur_fitness in self.brain_fitness.items():
+            sum = 1
+            for other_brain, other_fitness in self.brain_fitness.items():
+                if not other_brain == cur_brain:
+                    distance = GeneticEncoding.get_dissimilarity(other_brain, cur_brain)
+                    if distance < self.speciation_threshold:
+                        sum += 1
+            new_fitness[cur_brain] = cur_fitness / float(sum)
+        self.brain_fitness = new_fitness
+
+
     def produce_new_generation(self, logging_callback = None):
         brain_fitness_list = [(br, fit) for br, fit in self.brain_fitness.items()]
         # do not store information about old generations:
@@ -248,6 +267,14 @@ class RobotLearner:
 
         # sort parents from best to worst:
         brain_fitness_list = sorted(brain_fitness_list, key = lambda elem: elem[1], reverse=True)
+
+
+        # FOR DEBUG:
+        ########################################################
+        for b_f in brain_fitness_list:
+            print 'FITNESS = {0}'.format(b_f[1])
+        ########################################################
+
 
         # select the best ones:
         brain_fitness_list_best = [brain_fitness_list[i] for i in range(self.pop_size - self.num_children)]
@@ -275,9 +302,9 @@ class RobotLearner:
 
         for i, pair in enumerate(parent_pairs):
 
-            print "\nchild #{0}\nSELECTED PARENTS:".format(str(i+1))
-            print str(pair[0][0]) + ", fitness = " + str(pair[0][1])
-            print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
+            # print "\nchild #{0}\nSELECTED PARENTS:".format(str(i+1))
+            # print str(pair[0][0]) + ", fitness = " + str(pair[0][1])
+            # print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
 
             # apply crossover:
             print "applying crossover..."

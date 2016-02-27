@@ -211,7 +211,8 @@ class LearningManager(World):
                                        param_mutation_probability=0.8,
                                        param_mutation_sigma=5,
                                        structural_mutation_probability=0.8,
-                                       max_num_generations=1000)
+                                       max_num_generations=1000,
+                                       speciation_threshold=0.5) # threshold for speciation and fitness sharing
 
             # THIS IS IMPORTANT!
             yield From(learner.initialize(world=self))
