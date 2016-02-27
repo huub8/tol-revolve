@@ -205,11 +205,11 @@ class LearningManager(World):
                                        tournament_size=tournament_size,
                                        num_children=num_children,
                                        evaluation_time=evaluation_time, # simulation seconds
-                                       evaluation_time_sigma=1,         # for eval. time randomization
+                                       evaluation_time_sigma=2,         # for eval. time randomization
                                        weight_mutation_probability=0.8,
-                                       weight_mutation_sigma=1,
+                                       weight_mutation_sigma=5,
                                        param_mutation_probability=0.8,
-                                       param_mutation_sigma=1,
+                                       param_mutation_sigma=5,
                                        structural_mutation_probability=0.8,
                                        max_num_generations=1000)
 

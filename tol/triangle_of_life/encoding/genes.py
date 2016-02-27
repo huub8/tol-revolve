@@ -104,8 +104,12 @@ class GeneticEncoding:
     def __init__(self):
         self.neuron_genes = []
         self.connection_genes = []
+    
+    
+    def num_genes(self):
+        return len(self.neuron_genes) + len(self.connection_genes)
 
-
+    
     def connection_exists(self, mark_from, mark_to):
         exists = False
         for c_g in self.connection_genes:
@@ -114,7 +118,106 @@ class GeneticEncoding:
                 break
 
         return exists
+    
+    
+    @staticmethod
+    def get_similarity(genotype1, genotype2, excess_coef=1, disjoint_coef=1, weight_diff_coef=1):
+        excess_num, disjoint_num = get_excess_disjoint(genotype1, genotype2)
+        num_genes = max(genotype1.num_genes(), genotype2.num_genes())
+        similarity = (disjoint_coef * disjoint_num + excess_coef * excess_num) / num_genes
+        
+        return similarity
+        
+        
+    @staticmethod
+    def get_excess_disjoint(genotype1, genotype2):
+        genes_sorted1 = sorted(genotype1.neuron_genes + genotype1.connection_genes,
+                               key = lambda gene: gene.historical_mark)
 
+        genes_sorted2 = sorted(genotype2.neuron_genes + genotype2.connection_genes,
+                               key = lambda gene: gene.historical_mark)
+
+        num_genes1 = len(genes_sorted1)
+        num_genes2 = len(genes_sorted2)
+
+        min_mark1 = genes_sorted1[0].historical_mark
+        max_mark1 = genes_sorted1[-1].historical_mark
+
+        min_mark2 = genes_sorted2[0].historical_mark
+        max_mark2 = genes_sorted2[-1].historical_mark
+
+        min_mark = min(min_mark1, min_mark2)
+        max_mark = max(max_mark1, max_mark2)
+        
+        pairs = GeneticEncoding.get_pairs(genes_sorted1, genes_sorted2)
+    
+        excess_num = 0
+        disjoint_num = 0
+        
+        for pair in pairs:
+            if pair[0] and not pair[1]:
+                mark = pair[0].historical_mark
+                if mark > (min_mark2 - 1) and mark < (max_mark2 + 1):
+                    disjoint_num += 1
+                else:
+                    excess_num += 1
+                    
+            elif pair[1] and not pair[0]:
+                mark = pair[1].historical_mark
+                if mark > (min_mark1 - 1) and mark < (max_mark1 + 1):
+                    disjoint_num += 1
+                else:
+                    excess_num += 1
+        
+        return excess_num, disjoint_num
+
+
+    @staticmethod
+    def get_pairs(genes_sorted1, genes_sorted2):
+        num_genes1 = len(genes_sorted1)
+        num_genes2 = len(genes_sorted2)
+
+        min_mark1 = genes_sorted1[0].historical_mark
+        max_mark1 = genes_sorted1[-1].historical_mark
+
+        min_mark2 = genes_sorted2[0].historical_mark
+        max_mark2 = genes_sorted2[-1].historical_mark
+
+        min_mark = min(min_mark1, min_mark2)
+        max_mark = max(max_mark1, max_mark2)
+        
+        
+        gene_pairs = []
+
+        # search for pairs of genes with equal marks:
+        for mark in range(min_mark, max_mark+1):
+            
+            gene1 = None
+            for i in range(num_genes1):
+                if genes_sorted1[i].historical_mark == mark:
+                    gene1 = genes_sorted1[i]
+                    break
+                elif genes_sorted1[i].historical_mark > mark:
+                    break
+
+                    
+            gene2 = None
+            for i in range(num_genes2):
+                if genes_sorted2[i].historical_mark == mark:
+                    gene2 = genes_sorted2[i]
+                    break
+                elif genes_sorted2[i].historical_mark > mark:
+                    break
+                    
+                    
+            if gene1 or gene2:
+                gene_pairs.append((gene1, gene2))
+            
+        return gene_pairs
+
+
+
+        return num_disjoint
 
     def find_gene_by_mark(self, mark):
         for gene in self.neuron_genes + self.connection_genes:
