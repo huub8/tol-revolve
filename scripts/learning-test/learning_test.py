@@ -75,6 +75,15 @@ parser.add_argument(
     help="path to file containing robot morphology to test learning on"
 )
 
+parser.add_argument(
+    '--speciation-threshold',
+    type=float,
+    default=0.5,
+    help="similarity threshold for separating genotypes into different species;"
+    "must be between 0 and 1; the smaller it is, the more similar genotypes have to be"
+    "to be considered the same species"
+)
+
 class LearningManager(World):
     def __init__(self, conf, _private):
         super(LearningManager, self).__init__(conf, _private)
@@ -162,12 +171,10 @@ class LearningManager(World):
 
         # brain population size:
         pop_size = conf.population_size
-
         tournament_size = conf.tournament_size
-
         evaluation_time = conf.eval_time  # in simulation seconds
-
         num_children = conf.num_children
+        speciation_threshold = conf.speciation_threshold # similarity threshold for fitness sharing
 
         # # FOR DEBUG
         # ###############################################
@@ -191,10 +198,11 @@ class LearningManager(World):
 
             robot = yield From(wait_for(self.insert_robot(tree, pose)))
 
-            print "population size set to    {0}".format(pop_size)
-            print "tournament size set to    {0}".format(tournament_size)
-            print "number of children set to {0}".format(num_children)
-            print "evaluation time set to    {0}".format(evaluation_time)
+            print "population size set to      {0}".format(pop_size)
+            print "tournament size set to      {0}".format(tournament_size)
+            print "number of children set to   {0}".format(num_children)
+            print "evaluation time set to      {0}".format(evaluation_time)
+            print "speciation threshold set to {0}".format(speciation_threshold)
 
             learner = RobotLearner(world=self,
                                        robot=robot,
@@ -212,7 +220,7 @@ class LearningManager(World):
                                        param_mutation_sigma=5,
                                        structural_mutation_probability=0.8,
                                        max_num_generations=1000,
-                                       speciation_threshold=0.5) # threshold for speciation and fitness sharing
+                                       speciation_threshold=speciation_threshold)
 
             # THIS IS IMPORTANT!
             yield From(learner.initialize(world=self))
@@ -220,8 +228,22 @@ class LearningManager(World):
             self.add_learner(learner)
 
         else:
+            # set new experiment parameters:
+            learner = self.learner_list[0]
+            learner.population_size = pop_size
+            learner.tournament_size = tournament_size
+            learner.evaluation_time = evaluation_time
+            learner.num_children = num_children
+            learner.speciation_threshold = speciation_threshold
+
             print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
             print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
+
+            print "population size set to      {0}".format(learner.population_size)
+            print "tournament size set to      {0}".format(learner.tournament_size)
+            print "number of children set to   {0}".format(learner.num_children)
+            print "evaluation time set to      {0}".format(learner.evaluation_time)
+            print "speciation threshold set to {0}".format(learner.speciation_threshold)
 
 
         # Request callback for the subscriber

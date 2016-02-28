@@ -1,4 +1,4 @@
-import os
+import math
 import trollius
 from trollius import From, Return, Future
 from collections import deque
@@ -153,7 +153,13 @@ class RobotLearner:
         # self.last_position = current_position
         # self.fitness += diff
 
+   #     displacement = abs(Vector3(0,0,0) - current_position)
+
         displacement = abs(Vector3(0,0,0) - current_position)
+
+        # count only horizontal displacement:
+        displacement = math.sqrt(pow(current_position[0] - 0, 2) + \
+                                 pow(current_position[1] - 0, 2))
         self.fitness = displacement
 
 
@@ -195,7 +201,6 @@ class RobotLearner:
 
 
             print "Evaluation over"
-            self.total_brains_evaluated += 1
 
             print "%%%%%%%%%%%%%%%%%%\n\nEvaluated {0} brains".format(self.total_brains_evaluated)
             print "last evaluated: {0}".format(self.active_brain)
@@ -222,6 +227,11 @@ class RobotLearner:
             next_brain = self.evaluation_queue[0]
             yield From(self.activate_brain(world, next_brain))
 
+            # -----------------------------------------------------------------------------------
+            # if we are past this line, the sumulator did not crash while deleting a robot
+            # -----------------------------------------------------------------------------------
+            
+            self.total_brains_evaluated += 1
             self.evaluation_queue.popleft()
 
             self.timers.reset('evaluate', world.last_time)
@@ -307,56 +317,56 @@ class RobotLearner:
             # print str(pair[1][0]) + ", fitness = " + str(pair[1][1])
 
             # apply crossover:
-            print "applying crossover..."
+  #          print "applying crossover..."
             child_genotype = Crossover.crossover(pair[0][0], pair[1][0])
             validate_genotype(child_genotype, "crossover created invalid genotype")
-            print "crossover successful"
+   #         print "crossover successful"
 
 
             # apply mutations:
 
-            print "applying weight mutations..."
+   #         print "applying weight mutations..."
             self.mutator.mutate_weights(
                 genotype=child_genotype,
                 probability=self.weight_mutation_probability,
                 sigma=self.weight_mutation_sigma)
             validate_genotype(child_genotype, "weight mutation created invalid genotype")
-            print "weight mutation successful"
+   #         print "weight mutation successful"
 
 
-            print "applying neuron parameters mutations..."
+   #         print "applying neuron parameters mutations..."
             self.mutator.mutate_neuron_params(
                 genotype=child_genotype,
                 probability=self.param_mutation_probability,
                 sigma=self.param_mutation_sigma)
             validate_genotype(child_genotype, "neuron parameters mutation created invalid genotype")
-            print "neuron parameters mutation successful"
+    #        print "neuron parameters mutation successful"
 
 
             # apply structural mutations:
             if random.random() < self.structural_mutation_probability:
-                print "applying structural mutation..."
+    #            print "applying structural mutation..."
 
                 # if no connections, add connection
                 if len(child_genotype.connection_genes) == 0:
-                    print "inserting new CONNECTION..."
+    #                print "inserting new CONNECTION..."
                     self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
                     validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype")
-                    print "inserting new CONNECTION successful"
+    #                print "inserting new CONNECTION successful"
 
                 # otherwise add connection or neuron with equal probability
                 else:
                     if random.random() < 0.5:
-                        print "inserting new CONNECTION..."
+    #                    print "inserting new CONNECTION..."
                         self.mutator.add_connection_mutation(child_genotype, self.mutator.new_connection_sigma)
                         validate_genotype(child_genotype, "inserting new CONNECTION created invalid genotype")
-                        print "inserting new CONNECTION successful"
+    #                    print "inserting new CONNECTION successful"
 
                     else:
-                        print "inserting new NEURON..."
+     #                   print "inserting new NEURON..."
                         self.mutator.add_neuron_mutation(child_genotype)
                         validate_genotype(child_genotype, "inserting new NEURON created invalid genotype")
-                        print "inserting new NEURON successful"
+     #                   print "inserting new NEURON successful"
 
             self.evaluation_queue.append(child_genotype)
 
