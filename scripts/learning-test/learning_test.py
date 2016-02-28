@@ -198,10 +198,10 @@ class LearningManager(World):
 
             robot = yield From(wait_for(self.insert_robot(tree, pose)))
 
-            print "population size set to      {0}".format(pop_size)
-            print "tournament size set to      {0}".format(tournament_size)
-            print "number of children set to   {0}".format(num_children)
-            print "evaluation time set to      {0}".format(evaluation_time)
+            print "population size      set to {0}".format(pop_size)
+            print "tournament size      set to {0}".format(tournament_size)
+            print "number of children   set to {0}".format(num_children)
+            print "evaluation time      set to {0}".format(evaluation_time)
             print "speciation threshold set to {0}".format(speciation_threshold)
 
             learner = RobotLearner(world=self,
@@ -239,10 +239,10 @@ class LearningManager(World):
             print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
             print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
 
-            print "population size set to      {0}".format(learner.population_size)
-            print "tournament size set to      {0}".format(learner.tournament_size)
-            print "number of children set to   {0}".format(learner.num_children)
-            print "evaluation time set to      {0}".format(learner.evaluation_time)
+            print "population size      set to {0}".format(learner.population_size)
+            print "tournament size      set to {0}".format(learner.tournament_size)
+            print "number of children   set to {0}".format(learner.num_children)
+            print "evaluation time      set to {0}".format(learner.evaluation_time)
             print "speciation threshold set to {0}".format(learner.speciation_threshold)
 
 

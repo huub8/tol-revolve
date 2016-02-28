@@ -1,24 +1,14 @@
 connections:
-- enabled: false
+- enabled: true
   from: 0
   hist_mark: 9
   to: 7
-  weight: 4.459778156649545
+  weight: 19.43259448139866
 - enabled: true
   from: 0
   hist_mark: 10
   to: 8
-  weight: 8.80189584826366
-- enabled: true
-  from: 0
-  hist_mark: 35
-  to: 34
-  weight: 4.459778156649545
-- enabled: true
-  from: 34
-  hist_mark: 36
-  to: 7
-  weight: 1.0
+  weight: 10
 neurons:
 - enabled: true
   hist_mark: 0
@@ -27,7 +17,7 @@ neurons:
   params:
     amplitude: 1
     period: 0.5
-    phase_offset: 3.14
+    phase_offset: 1.2713184197470082
   part_id: Core
   type: Oscillator
 - enabled: true
@@ -77,8 +67,8 @@ neurons:
   id: Leg00Joint-out-0
   layer: output
   params:
-    bias: -1
-    gain: 1
+    bias: 0.0
+    gain: 0
   part_id: Leg00Joint
   type: Simple
 - enabled: true
@@ -90,13 +80,3 @@ neurons:
     gain: 0.5
   part_id: Leg01Joint
   type: Simple
-- enabled: true
-  hist_mark: 34
-  id: augment34
-  layer: hidden
-  params:
-    bias: 0.8629656510162336
-    gain: 0.4440868372584976
-  part_id: Core
-  type: Sigmoid
-

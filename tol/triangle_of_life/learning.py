@@ -43,6 +43,7 @@ class RobotLearner:
         self.timers = Timers(['evaluate'], 0)
         self.evaluation_queue = deque()
         self.brain_fitness = {}
+        self.brain_velocity = {}
         self.generation_number = 0
 
         self.total_brains_evaluated = 0
@@ -202,7 +203,7 @@ class RobotLearner:
 
             print "Evaluation over"
 
-            print "%%%%%%%%%%%%%%%%%%\n\nEvaluated {0} brains".format(self.total_brains_evaluated)
+            print "%%%%%%%%%%%%%%%%%%\n\nEvaluated {0} brains".format(str(self.total_brains_evaluated+1))
             print "last evaluated: {0}".format(self.active_brain)
             print "queue length = {0}".format(len(self.evaluation_queue))
             print "fitness (distance covered): {0}".format(self.fitness )
@@ -210,12 +211,14 @@ class RobotLearner:
             print "simulation time: {0}\n\n%%%%%%%%%%%%%%%%%%".format(world.last_time)
 
             self.brain_fitness[self.active_brain] = self.get_fitness() / self.evaluation_time_actual
+            self.brain_velocity[self.active_brain] =  self.get_fitness() / self.evaluation_time_actual
 
             # make snapshot (freezes when evaluation queue is empty:
             yield From(world.create_snapshot())
 
             # if all brains are evaluated, produce new generation:
             if len(self.evaluation_queue) == 0:
+
                 # distribute fitness based on similarity:
                 self.share_fitness()
 
@@ -230,7 +233,7 @@ class RobotLearner:
             # -----------------------------------------------------------------------------------
             # if we are past this line, the sumulator did not crash while deleting a robot
             # -----------------------------------------------------------------------------------
-            
+
             self.total_brains_evaluated += 1
             self.evaluation_queue.popleft()
 
@@ -272,12 +275,15 @@ class RobotLearner:
 
     def produce_new_generation(self, logging_callback = None):
         brain_fitness_list = [(br, fit) for br, fit in self.brain_fitness.items()]
+        brain_velocity_list = [(br, velo) for br, velo in self.brain_velocity.items()]
+
         # do not store information about old generations:
         self.brain_fitness.clear()
+        self.brain_velocity.clear()
 
         # sort parents from best to worst:
         brain_fitness_list = sorted(brain_fitness_list, key = lambda elem: elem[1], reverse=True)
-
+        brain_velocity_list = sorted(brain_velocity_list, key = lambda elem: elem[1], reverse=True)
 
         # FOR DEBUG:
         ########################################################
@@ -381,8 +387,8 @@ class RobotLearner:
             # Log best 3 genotypes in this generation:
             out_string += "generation #{0}\n".format(self.generation_number)
             for i in range(3):
-                out_string += "fitness = {0}\n".format(brain_fitness_list[i][1])
-                out_string += brain_fitness_list[i][0].to_yaml()
+                out_string += "velocity : {0}\n".format(brain_velocity_list[i][1])
+                out_string += brain_velocity_list[i][0].to_yaml()
                 out_string += "\n"
             logging_callback(out_string)
 
