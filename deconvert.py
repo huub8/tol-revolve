@@ -6,7 +6,7 @@ from tol.config import parser
 
 def main():
     conf = parser.parse_args()
-    with open("scripts/testBots/spider",'r') as yamlfile:
+    with open("scripts/testBots/gecko",'r') as yamlfile:
         yaml_bot = yamlfile.read()
 
     body_spec = get_body_spec(conf)
@@ -18,7 +18,7 @@ def main():
     print "converting to yaml..."
     yaml_bot = robot_to_yaml(body_spec, brain_spec, pb_bot)
 
-    with open("scripts/testBots/spider.yaml",'w') as out_file:
+    with open("scripts/testBots/gecko.yaml",'w') as out_file:
         out_file.write(yaml_bot)
 
     print "done"

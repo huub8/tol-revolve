@@ -73,8 +73,13 @@ def run():
     print "OPENING FILES!!!!!!!!!!!!!!!!!!!"
     with open(conf.robot_file,'r') as robot_file:
         bot_yaml = robot_file.read()
-    with open (conf.genotype_file, 'r') as gen_file:
-        genotype_yaml = gen_file.read()
+
+    genotype_yaml = None
+
+    # if brain genotype file exists:
+    if conf.genotype_file != '':
+        with open (conf.genotype_file, 'r') as gen_file:
+            genotype_yaml = gen_file.read()
 
     print "CREATING WORLD!!!!!!!!!!!!!!!!!!!"
     world = yield From(World.create(conf))
@@ -82,18 +87,27 @@ def run():
 
     pose = Pose(position=Vector3(0, 0, 0))
 
-    # convert YAML stream to protobuf body:
-    robot_body_pb = yaml_to_robot(body_spec, brain_spec, bot_yaml).body
+    # if brain genotype is given, combine body and brain:
+    if genotype_yaml:
+        # convert YAML stream to protobuf body:
+        robot_body_pb = yaml_to_robot(body_spec, brain_spec, bot_yaml).body
+
+        # convert YAML stream to genotype:
+        robot_brain_genotype = yaml_to_genotype(genotype_yaml, brain_spec)
+
+        # convert genotype to protobuf brain:
+        nn_parser = NeuralNetworkParser(brain_spec)
+        robot_brain_pb = nn_parser.genotype_to_brain(robot_brain_genotype)
+
+        tree = Tree.from_body_brain(robot_body_pb, robot_brain_pb, body_spec)
 
 
-    # convert YAML stream to genotype:
-    robot_brain_genotype = yaml_to_genotype(genotype_yaml, brain_spec)
+    # if brain genotype is not given, just insert the body:
+    else:
+         # convert YAML stream to protobuf robot:
+        robot_pb = yaml_to_robot(body_spec, brain_spec, bot_yaml)
+        tree = Tree.from_body_brain(robot_pb.body, robot_pb.brain, body_spec)
 
-    # convert genotype to protobuf brain:
-    nn_parser = NeuralNetworkParser(brain_spec)
-    robot_brain_pb = nn_parser.genotype_to_brain(robot_brain_genotype)
-
-    tree = Tree.from_body_brain(robot_body_pb, robot_brain_pb, body_spec)
 
     print "INSERTING ROBOT!!!!!!!!!!!!!!!!!!!!!!"
     robot = yield From(wait_for(world.insert_robot(tree, pose)))

@@ -31,7 +31,13 @@ class RobotLearner:
         self.robot = robot
         self.active_brain = None
         self.fitness = 0
-        self.last_position = Vector3(0,0,0)
+        if self.robot is None:
+            self.last_position = Vector3(0,0,0)
+        else:
+            self.last_position = self.robot.last_position
+
+        self.initial_position = self.last_position
+        self.traveled_distance = 0
 
         self.brain_spec = brain_spec
         self.body_spec = body_spec
@@ -47,6 +53,7 @@ class RobotLearner:
         self.generation_number = 0
 
         self.total_brains_evaluated = 0
+
 
         # experiment parameters:
         self.pop_size = population_size
@@ -144,31 +151,30 @@ class RobotLearner:
 
 
     def reset_fitness(self):
-        self.last_position = Vector3(0,0,0)
+        self.last_position = self.initial_position
+        self.traveled_distance = 0
         self.fitness = 0
 
 
     def update_fitness(self):
         current_position = self.robot.last_position
-        # diff = abs(self.last_position - current_position)
-        # self.last_position = current_position
-        # self.fitness += diff
 
-   #     displacement = abs(Vector3(0,0,0) - current_position)
+        # displacement from the last update:
+        diff = math.sqrt(pow(current_position[0] - self.last_position[0], 2) + \
+                         pow(current_position[1] - self.last_position[1], 2))
 
-        displacement = abs(Vector3(0,0,0) - current_position)
+        self.traveled_distance += diff
+        self.last_position = current_position
 
-        # count only horizontal displacement:
-        displacement = math.sqrt(pow(current_position[0] - 0, 2) + \
-                                 pow(current_position[1] - 0, 2))
-        self.fitness = displacement
+        # displacement from the starting position:
+        displacement = math.sqrt(pow(current_position[0] - self.initial_position[0], 2) + \
+                                 pow(current_position[1] - self.initial_position[1], 2))
+
+        # fitness is a combination of displacement and traveled distance:
+        self.fitness = 5*displacement + self.traveled_distance
 
 
     def get_fitness(self):
-        # if abs(self.last_position - Vector3(0,0,0)) > 0.001:
-        #     return self.fitness
-        # else:
-        #     return 0
         return self.fitness
         
 
@@ -288,12 +294,12 @@ class RobotLearner:
         # FOR DEBUG:
         ########################################################
         for b_f in brain_fitness_list:
-            print 'FITNESS = {0}'.format(b_f[1])
+            print 'SHARED FITNESS = {0}'.format(b_f[1])
         ########################################################
 
 
         # select the best ones:
-        brain_fitness_list_best = [brain_fitness_list[i] for i in range(self.pop_size - self.num_children)]
+  #      brain_fitness_list_best = [brain_fitness_list[i] for i in range(self.pop_size - self.num_children)]
 
         parent_pairs = []
 
@@ -301,7 +307,7 @@ class RobotLearner:
         for _ in range(self.num_children):
 
             # select for tournament only from the best parents:
-            selected = self.select_for_tournament(brain_fitness_list_best)
+            selected = self.select_for_tournament(brain_fitness_list)
 
             # # OR
 
@@ -379,18 +385,30 @@ class RobotLearner:
 
         # bringing the best parents into next generation:
         for i in range(self.pop_size - self.num_children):
-            print "saving parent #{0}, fitness = {1}".format(str(i+1), brain_fitness_list_best[i][1])
-            self.evaluation_queue.append(brain_fitness_list_best[i][0])
+            print "saving parent #{0}, fitness = {1}".format(str(i+1), brain_fitness_list[i][1])
+            self.evaluation_queue.append(brain_fitness_list[i][0])
 
+        # Log best 3 genotypes in this generation:
         if logging_callback:
-            out_string = ""
-            # Log best 3 genotypes in this generation:
-            out_string += "generation #{0}\n".format(self.generation_number)
+            log_data = {}
+            genotypes_string = ""
+            fitness_string = ""
+
+            avg_fitness = 0
+            genotypes_string += "generation #{0}\n".format(self.generation_number)
             for i in range(3):
-                out_string += "velocity : {0}\n".format(brain_velocity_list[i][1])
-                out_string += brain_velocity_list[i][0].to_yaml()
-                out_string += "\n"
-            logging_callback(out_string)
+                genotypes_string += "velocity : {0}\n".format(brain_velocity_list[i][1])
+                genotypes_string += brain_velocity_list[i][0].to_yaml()
+                genotypes_string += "\n"
+                avg_fitness += brain_velocity_list[i][1]
+
+            avg_fitness = avg_fitness / float(3)
+
+            fitness_string += str(avg_fitness)
+            fitness_string += "\n"
+            log_data["average_velocity.log"] = fitness_string
+            log_data["genotypes.log"] = genotypes_string
+            logging_callback(log_data)
 
 
 

@@ -84,6 +84,17 @@ parser.add_argument(
     "to be considered the same species"
 )
 
+
+parser.add_argument(
+    '--max-generations',
+    type=int,
+    help='number of generations in the experiment'
+         'the experiment stops when it reaches this number of generations'
+)
+
+
+
+
 class LearningManager(World):
     def __init__(self, conf, _private):
         super(LearningManager, self).__init__(conf, _private)
@@ -158,12 +169,13 @@ class LearningManager(World):
         self.learner_list.append(learner)
 
 
-    def log_info(self, out_string):
+    def log_info(self, log_data):
         if self.output_directory:
-            genotype_log_filename = os.path.join(self.output_directory, 'genotypes.log')
-            genotype_log_file = open(genotype_log_filename, "a")
-            genotype_log_file.write(out_string)
-            genotype_log_file.close()
+            for filename, data in log_data.items():
+                genotype_log_filename = os.path.join(self.output_directory, filename)
+                genotype_log_file = open(genotype_log_filename, "a")
+                genotype_log_file.write(data)
+                genotype_log_file.close()
 
 
     @trollius.coroutine
@@ -175,6 +187,10 @@ class LearningManager(World):
         evaluation_time = conf.eval_time  # in simulation seconds
         num_children = conf.num_children
         speciation_threshold = conf.speciation_threshold # similarity threshold for fitness sharing
+
+        # after how many generations we stop the experiment:
+        max_generations = conf.max_generations
+
 
         # # FOR DEBUG
         # ###############################################
@@ -203,6 +219,7 @@ class LearningManager(World):
             print "number of children   set to {0}".format(num_children)
             print "evaluation time      set to {0}".format(evaluation_time)
             print "speciation threshold set to {0}".format(speciation_threshold)
+            print "\nmax number of generations set to {0}".format(max_generations)
 
             learner = RobotLearner(world=self,
                                        robot=robot,
@@ -219,7 +236,7 @@ class LearningManager(World):
                                        param_mutation_probability=0.8,
                                        param_mutation_sigma=5,
                                        structural_mutation_probability=0.8,
-                                       max_num_generations=1000,
+                                       max_num_generations=max_generations,
                                        speciation_threshold=speciation_threshold)
 
             # THIS IS IMPORTANT!
@@ -235,6 +252,7 @@ class LearningManager(World):
             learner.evaluation_time = evaluation_time
             learner.num_children = num_children
             learner.speciation_threshold = speciation_threshold
+            learner.max_generations = max_generations
 
             print "WORLD RESTORED FROM {0}".format(self.world_snapshot_filename)
             print "STATE RESTORED FROM {0}".format(self.snapshot_filename)
@@ -244,7 +262,7 @@ class LearningManager(World):
             print "number of children   set to {0}".format(learner.num_children)
             print "evaluation time      set to {0}".format(learner.evaluation_time)
             print "speciation threshold set to {0}".format(learner.speciation_threshold)
-
+            print "\nmax number of generations set to {0}".format(learner.max_generations)
 
         # Request callback for the subscriber
         def callback(data):
@@ -259,7 +277,8 @@ class LearningManager(World):
         while True:
             for learner in self.learner_list:
                 result = yield From(learner.update(self, self.log_info))
-
+            if result:
+                break
 
 
 @trollius.coroutine
@@ -297,7 +316,7 @@ def main():
 #        logging.basicConfig(level=logging.DEBUG)
         loop.set_exception_handler(handler)
         loop.run_until_complete(run())
-        print "FINISH"
+        print "EXPERIMENT FINISHED"
 
     except KeyboardInterrupt:
         print("Got Ctrl+C, shutting down.")
