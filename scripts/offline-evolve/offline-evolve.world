@@ -21,7 +21,7 @@
           <contact_surface_layer>1e-8</contact_surface_layer>
         </constraints>
         <solver>
-          <type>quick</type>
+          <type>world</type>
         </solver>
       </ode>
     </physics>

@@ -17,12 +17,11 @@ def get_body_spec(conf):
     :return:
     :rtype: BodyImplementation
     """
-    # Body specification
     parts = {
         "Core": PartSpec(
             body_part=CoreComponent,
             arity=4,
-            inputs=6,
+            inputs=0 if conf.disable_sensors else 6,
             params=color_params
         ),
         "FixedBrick": PartSpec(
@@ -106,21 +105,22 @@ def get_body_spec(conf):
         # )
     }
 
-    if conf.enable_touch_sensor:
-        parts['TouchSensor'] = PartSpec(
-            body_part=TouchSensor,
-            arity=1,
-            inputs=2,
-            params=color_params
-        )
+    if not conf.disable_sensors:
+        if conf.enable_touch_sensor:
+            parts['TouchSensor'] = PartSpec(
+                body_part=TouchSensor,
+                arity=1,
+                inputs=2,
+                params=color_params
+            )
 
-    if conf.enable_light_sensor:
-        parts['LightSensor'] = PartSpec(
-            body_part=LightSensor,
-            arity=1,
-            inputs=1,
-            params=color_params
-        )
+        if conf.enable_light_sensor:
+            parts['LightSensor'] = PartSpec(
+                body_part=LightSensor,
+                arity=1,
+                inputs=1,
+                params=color_params
+            )
 
     return BodyImplementation(parts)
 

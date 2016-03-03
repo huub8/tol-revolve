@@ -47,7 +47,7 @@ def str_to_bool(v):
     """
     :type v: str
     """
-    return v.lower() == "true" or v == "1"
+    return v.lower() in ("true", "1")
 
 
 def str_to_address(v):
@@ -97,7 +97,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--min-parts',
-    default=4, type=int,
+    default=3, type=int,
     help="Minimum number of parts in a robot."
 )
 
@@ -210,6 +210,14 @@ parser.add_argument(
     default=None, type=str,
     help="Explicit subdirectory of the output directory, if a world "
          "state is present in this directory it will be restored."
+)
+
+parser.add_argument(
+    '--disable-sensors',
+    default=False, type=str_to_bool,
+    help="Disables all sensors - overriding specific sensor settings. In practice "
+         "this means that the core component is created without an IMU sensor, whereas "
+         "the other sensor parts are not enabled at all."
 )
 
 parser.add_argument(

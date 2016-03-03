@@ -1,4 +1,4 @@
-from revolve.build.sdf import RobotBuilder, BodyBuilder, NeuralNetBuilder, Sensor
+from revolve.build.sdf import RobotBuilder, BodyBuilder, NeuralNetBuilder, BasicBattery
 from sdfbuilder import SDF, Element
 from sdfbuilder.physics import Friction
 from sdfbuilder.structure import Collision

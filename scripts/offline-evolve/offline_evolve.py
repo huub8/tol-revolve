@@ -10,24 +10,22 @@
 # -- Comma scheme, get rid of the parents and continue with children only
 from __future__ import absolute_import
 import sys
-
 import time
-
 import os
 import shutil
-from revolve.util import wait_for
-import trollius
-from trollius import From, Return
-from sdfbuilder import Pose
-from sdfbuilder.math import Vector3
 import random
 import csv
 import itertools
 import logging
+import trollius
+from trollius import From, Return
 
-# Add "tol" directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/../')
+from sdfbuilder import Pose
+from sdfbuilder.math import Vector3
 
+from revolve.util import wait_for
+
+from tol.manage.robot import Robot
 from tol.config import parser
 from tol.manage import World
 from tol.logging import logger, output_console
@@ -119,6 +117,9 @@ class OfflineEvoManager(World):
                 self.generations_file = open(self.generations_filename, 'wb', buffering=1)
                 self.write_generations = csv.writer(self.generations_file, delimiter=',')
                 self.write_generations.writerow(['run', 'gen', 'robot_id', 'vel', 'dvel', 'fitness', 't_eval'])
+
+    def robots_header(self):
+        return Robot.header()
 
     @classmethod
     @trollius.coroutine

@@ -15,7 +15,7 @@
           <contact_surface_layer>1e-8</contact_surface_layer>
         </constraints>
         <solver>
-          <type>quick</type>
+          <type>world</type>
         </solver>
       </ode>
     </physics>
@@ -26,9 +26,6 @@
     </include>
     <include>
       <uri>model://tol_ground</uri>
-    </include>
-    <include>
-        <uri>model://test_bot</uri>
     </include>
 
     <plugin name="tol-control" filename="libtolworldcontrol.so" />

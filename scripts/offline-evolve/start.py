@@ -1,11 +1,13 @@
 import os
 import sys
-from revolve.util import Supervisor
-from offline_evolve import parser
 
 here = os.path.dirname(os.path.abspath(__file__))
 tol_path = os.path.abspath(os.path.join(here, '..', '..'))
 rv_path = os.path.abspath(os.path.join(tol_path, '..', 'revolve'))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from revolve.util import Supervisor
+from offline_evolve import parser
 
 args = parser.parse_args()
 
