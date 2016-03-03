@@ -21,13 +21,17 @@ class NeuralNetworkParser:
 
         genotype = GeneticEncoding()
 
+        # map neuron ids to historical marks of their respective genes:
+        id_mark_map = {}
+
         for neuron_id, neuron in neuron_map.items():
-            mutator.add_neuron(neuron, genotype)
+            mark = mutator.add_neuron(neuron, genotype)
+            id_mark_map[neuron_id] = mark
 
         for connection in connection_descriptions:
             mutator.add_connection(
-                neuron_from=neuron_map[connection["src"]],
-                neuron_to=neuron_map[connection["dst"]] ,
+                mark_from=id_mark_map[connection["src"]],
+                mark_to=id_mark_map[connection["dst"]],
                 weight=connection["weight"],
                 genotype=genotype
             )
@@ -38,17 +42,42 @@ class NeuralNetworkParser:
 
         brain = NeuralNetwork()
 
-        neuron_map = self._parse_neuron_genes(genotype, brain)
-        self._parse_connection_genes(genotype, brain, neuron_map)
+#        neuron_map = self._parse_neuron_genes(genotype, brain)
+#        self._parse_connection_genes(genotype, brain, neuron_map)
+
+        self._parse_neuron_genes(genotype, brain)
+        self._parse_connection_genes(genotype, brain)
+
         return brain
 
 
+    # def _parse_neuron_genes(self, genotype, brain):
+    #     neuron_map = {}
+    #     for neuron_gene in genotype.neuron_genes:
+    #         if neuron_gene.enabled:
+    #             neuron_info = neuron_gene.neuron
+    #             neuron_map[neuron_info] = neuron_info.neuron_id
+    #
+    #             pb_neuron = brain.neuron.add()
+    #             pb_neuron.id = neuron_info.neuron_id
+    #             pb_neuron.layer = neuron_info.layer
+    #             pb_neuron.type = neuron_info.neuron_type
+    #             pb_neuron.partId = neuron_info.body_part_id
+    #
+    #             neuron_spec = self.spec.get(neuron_info.neuron_type)
+    #             serialized_params = neuron_spec.serialize_params(neuron_info.neuron_params)
+    #             for param_value in serialized_params:
+    #                 param = pb_neuron.param.add()
+    #                 param.value = param_value
+    #
+    #     return neuron_map
+
+
     def _parse_neuron_genes(self, genotype, brain):
-        neuron_map = {}
+
         for neuron_gene in genotype.neuron_genes:
             if neuron_gene.enabled:
                 neuron_info = neuron_gene.neuron
-                neuron_map[neuron_info] = neuron_info.neuron_id
 
                 pb_neuron = brain.neuron.add()
                 pb_neuron.id = neuron_info.neuron_id
@@ -61,23 +90,27 @@ class NeuralNetworkParser:
                 for param_value in serialized_params:
                     param = pb_neuron.param.add()
                     param.value = param_value
-					
-   #             for key, value in neuron_info.neuron_params.items():
-   #                 param = pb_neuron.param.add()
-   #                 param.value = value
-        return neuron_map
 
 
-    def _parse_connection_genes(self, genotype, brain, neuron_map):
+
+
+
+    def _parse_connection_genes(self, genotype, brain):
         for conn_gene in genotype.connection_genes:
             if conn_gene.enabled:
-                from_id = neuron_map[conn_gene.neuron_from]
-                to_id = neuron_map[conn_gene.neuron_to]
+
+                mark_from = conn_gene.mark_from
+                mark_to = conn_gene.mark_to
+
+                from_id = genotype.find_gene_by_mark(mark_from).neuron.neuron_id
+                to_id = genotype.find_gene_by_mark(mark_to).neuron.neuron_id
+
                 weight = conn_gene.weight
                 pb_conn = brain.connection.add()
                 pb_conn.src = from_id
                 pb_conn.dst = to_id
                 pb_conn.weight = weight
+
 
 
     def _parse_neurons(self, pb_neurons):
@@ -117,5 +150,3 @@ class NeuralNetworkParser:
             })
 
         return conn_descriptions
-
-

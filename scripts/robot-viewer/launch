@@ -1,0 +1,54 @@
+#!/bin/bash
+# Runs gazebo with the correct plugin path
+WORLD=viewer.world
+CMD=gazebo
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+echo "DIR="$DIR
+
+# get brain filenames from brain dir:
+BRAIN_FILES="$(ls -A $DIR/brain)"
+
+# get body filenames from body dir:
+BODY_FILES="$(ls -A $DIR/body)"
+
+BRAIN_FILE=${BRAIN_FILES[0]}
+BODY_FILE=${BODY_FILES[0]}
+
+if ! [ -z "$BRAIN_FILE" ]
+then
+    BRAIN_FILE="$DIR/brain/"$BRAIN_FILE
+fi
+
+BODY_FILE="$DIR/body/"$BODY_FILE
+
+echo "BRAIN FILE="$BRAIN_FILE
+echo "BODY FILE="$BODY_FILE
+
+
+# launch gazebo:
+GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:`pwd`/../../build GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:`pwd`/../../tools/models $CMD -u $WORLD &
+GZ_PID=$!
+
+echo $GAZEBO_PLUGIN_PATH
+echo $GAZEBO_MODEL_PATH
+
+
+../../../revolve/tools/analyzer/run-analyzer &
+ANALYZER_PID=$!
+
+sleep 2
+
+ACTUAL_ANALYZER_PID=`ps -ef | awk '$3 == '${ANALYZER_PID}' { print $2 } '`
+
+sleep 3
+
+python $DIR/robot_viewer.py --robot-file "$BODY_FILE" --genotype-file "$BRAIN_FILE" &
+PY_PID=$!
+
+echo 'PY_PID='$PY_PID
+
+wait $GZ_PID
+kill ${ACTUAL_ANALYZER_PID}
+kill $(jobs -rp)
+wait $(jobs -rp) 2>/dev/null
+echo "Done."

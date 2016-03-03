@@ -1,7 +1,7 @@
 import random
-import numpy
 
-from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron
+from . import NeuronGene, ConnectionGene, GeneticEncoding, Neuron, GenotypeCopyError, validate_genotype
+
 
 
 class Mutator:
@@ -13,19 +13,11 @@ class Mutator:
         self.brain_spec = brain_spec
 
 
-    def mutate_neuron_params(self, genotype, probability):
+    def mutate_neuron_params(self, genotype, probability, sigma):
         """
         Each neuron gene is chosen to be mutated with probability.
         The parameter to be mutated is chosen from the set of parameters with equal probability.
         """
-
-        # # FOR DEBUG
-        # #########################################
-        # print "before mutation:"
-        # print genotype.debug_string()
-        # ##########################################
-
-
 
         for neuron_gene in genotype.neuron_genes:
             if random.random() < probability:
@@ -35,34 +27,36 @@ class Mutator:
                 # print 'mutating gene :{0}'.format(neuron_gene.neuron.neuron_id)
                 # ##################################
 
-                random_param_values = self.brain_spec.get(neuron_gene.neuron.neuron_type).\
-                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
-                if random_param_values:
-                    param_name, param_value = random.choice(random_param_values.items()) # choose one param to mutate
+                neuron_spec = self.brain_spec.get(neuron_gene.neuron.neuron_type)
+                neuron_params = neuron_spec.parameters
+
+                if neuron_params:
+                    param_name, param_tuple = random.choice(neuron_params.items())
+                    param_spec = param_tuple[1]
+                    param_value = neuron_gene.neuron.neuron_params[param_name]
+                    max_value = param_spec.max
+                    min_value = param_spec.min
+                    param_value += random.gauss(0, sigma)
+
+                    if param_value > max_value:
+                        if param_spec.max_inclusive:
+                            param_value = max_value
+                        else:
+                            param_value = max_value - param_spec.epsilon
+
+                    if param_value < min_value:
+                        if param_spec.min_inclusive:
+                            param_value = min_value
+                        else:
+                            param_value = min_value + param_spec.epsilon
 
                     # # FOR DEBUG
                     # ##################################
-                    # print 'mutating param :{0} -- new value = {1}'.format(param_name, param_value)
+                    # print 'mutating param: {0} -- old value = {1}, new value = {2}'.\
+                    #     format(param_name, neuron_gene.neuron.neuron_params[param_name], param_value)
                     # ##################################
 
-
                     neuron_gene.neuron.neuron_params[param_name] = param_value
-
-                # else:
-                #    # # FOR DEBUG
-                #    #  ##################################
-                #    #  print 'no params'
-                #    #  ##################################
-
-
-        # # FOR DEBUG
-        # #########################################
-        # print "after mutation:"
-        # print genotype.debug_string()
-        # ##########################################
-
-
-
 
 
     def mutate_weights(self, genotype, probability, sigma):
@@ -90,47 +84,67 @@ class Mutator:
         """
 
         if random.random() < probability:
-            if random.random() < 0.5:
+            if len(genotype.connection_genes) == 0:
                 self.add_connection_mutation(genotype, self.new_connection_sigma)
             else:
-                self.add_neuron_mutation(genotype)
+                if random.random() < 0.5:
+                    self.add_connection_mutation(genotype, self.new_connection_sigma)
+                else:
+                    self.add_neuron_mutation(genotype)
 
 
     def add_connection_mutation(self, genotype, sigma):
-        neuron_from = random.choice(genotype.neuron_genes).neuron
-        neuron_to = random.choice(genotype.neuron_genes).neuron
+        mark_from = random.choice(genotype.neuron_genes).historical_mark
+        mark_to = random.choice(genotype.neuron_genes).historical_mark
 
         num_attempts = 1
-        while genotype.connection_exists(neuron_from, neuron_to):
-            neuron_from = random.choice(genotype.neuron_genes).neuron
-            neuron_to = random.choice(genotype.neuron_genes).neuron
+        while genotype.connection_exists(mark_from, mark_to):
+            mark_from = random.choice(genotype.neuron_genes).historical_mark
+            mark_to = random.choice(genotype.neuron_genes).historical_mark
 
             num_attempts += 1
             if num_attempts >= self.max_attempts:
                 return False
 
-        self.add_connection(neuron_from, neuron_to, weight = random.gauss(0, sigma), genotype = genotype)
+        self.add_connection(mark_from, mark_to, weight = random.gauss(0, sigma), genotype = genotype)
 
 
         return True
 
 
     def add_neuron_mutation(self, genotype):
-        connection_to_split = random.choice(genotype)
+        connection_to_split = random.choice(genotype.connection_genes)
         old_weight = connection_to_split.weight
         connection_to_split.enabled = False
 
-        neuron_from = connection_to_split.neuron_from
-        neuron_to = connection_to_split.neuron_to
+        mark_from = connection_to_split.mark_from
+        mark_to = connection_to_split.mark_to
+
+        neuron_from = genotype.find_gene_by_mark(mark_from).neuron
+        neuron_to = genotype.find_gene_by_mark(mark_to).neuron
 
         # TODO make so that new neuron can be added anywhere along the path
         body_part_id = random.choice([neuron_from.body_part_id, neuron_to.body_part_id])
 
-        neuron_middle = Neuron("hidden", body_part_id)
+        new_neuron_types = ["Simple", "Sigmoid", "Oscillator"]
 
-        self.add_connection(neuron_from, neuron_middle, old_weight, genotype)
-        self.add_connection(neuron_middle, neuron_to, 1.0, genotype)
-        self.add_neuron(neuron_middle, genotype)
+        new_neuron_type = random.choice(new_neuron_types)
+
+        new_neuron_params = self.brain_spec.get(new_neuron_type).\
+                    get_random_parameters(serialize=False) # returns dictionary {param_name:param_value}
+
+        neuron_middle = Neuron(
+            neuron_id="augment" + str(self.innovation_number),
+            neuron_type=new_neuron_type,
+            layer="hidden",
+            body_part_id=body_part_id,
+            neuron_params=new_neuron_params
+        )
+
+        mark_middle = self.add_neuron(neuron_middle, genotype)
+        self.add_connection(mark_from, mark_middle, old_weight, genotype)
+        self.add_connection(mark_middle, mark_to, 1.0, genotype)
+
 
 
 
@@ -140,15 +154,17 @@ class Mutator:
                                 enabled = True)
         self.innovation_number += 1
         genotype.add_neuron_gene(new_neuron_gene)
+        return new_neuron_gene.historical_mark
 
 
-    def add_connection(self, neuron_from, neuron_to, weight, genotype):
-        new_conn_gene = ConnectionGene(neuron_from, neuron_to,
+    def add_connection(self, mark_from, mark_to, weight, genotype):
+        new_conn_gene = ConnectionGene(mark_from, mark_to,
                                   weight = weight,
                                   innovation_number = self.innovation_number,
                                   enabled = True)
         self.innovation_number += 1
         genotype.add_connection_gene(new_conn_gene)
+        return new_conn_gene.historical_mark
 
 
 class Crossover:
@@ -156,8 +172,16 @@ class Crossover:
     @staticmethod
     def crossover(genotype_more_fit, genotype_less_fit):
         # copy original genotypes to keep them intact:
-        genotype_more_fit = genotype_more_fit.copy()
-        genotype_less_fit = genotype_less_fit.copy()
+        try:
+            genotype_more_fit = genotype_more_fit.copy()
+            genotype_less_fit = genotype_less_fit.copy()
+        except GenotypeCopyError as ex:
+            print ex.debug_string()
+            raise RuntimeError
+
+
+        # validate_genotype(genotype_more_fit, "crossover: copying created invalid genotype")
+        # validate_genotype(genotype_less_fit, "crossover: copying created invalid genotype")
 
         # sort genes by historical marks:
         genes_better = sorted(genotype_more_fit.neuron_genes + genotype_more_fit.connection_genes,
@@ -172,6 +196,13 @@ class Crossover:
 
         max_hist_mark = max(genes_better[-1].historical_mark,
                             genes_worse[-1].historical_mark)
+
+
+        # # FOR DEBUG
+        # ############################################
+        # print "MIN hist mark = {0}".format(min_hist_mark)
+        # print "MAX hist mark = {0}".format(max_hist_mark)
+        # ############################################
 
         gene_pairs = []
 
@@ -191,6 +222,13 @@ class Crossover:
 
             gene_pairs.append((better_gene, worse_gene))
 
+        # # FOR DEBUG
+        # ############################################
+        # print "PAIRS:"
+        # for pair in gene_pairs:
+        #     print str(pair[0]) + "," + str(pair[1])
+        # ############################################
+
 
         child_genes = []
 
@@ -206,6 +244,15 @@ class Crossover:
             # inherit unpaired gene from the more fit parent:
             elif pair[0] is not None:
                 child_genes.append(pair[0])
+
+
+        # # FOR DEBUG
+        # ############################################
+        # print "CHILD GENES:"
+        # for gene in child_genes:
+        #     print str(gene)
+        # ############################################
+
 
         child_genotype = GeneticEncoding()
         for gene in child_genes:

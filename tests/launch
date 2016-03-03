@@ -1,0 +1,24 @@
+#!/bin/bash
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+# get body filename from body dir
+for f in $DIR/gen1/*
+do
+    FIRST_FILE=$f
+done
+
+
+# get brain filename from brain dir
+for f in $DIR/gen2/*
+do
+    SECOND_FILE=$f
+done
+echo "FIRST_FILE="$FIRST_FILE
+echo "SECOND_FILE="$SECOND_FILE
+
+
+python $DIR/genotype_similarity.py --genotype-file-1 $FIRST_FILE --genotype-file-2 $SECOND_FILE &
+PY_PID=$!
+
+echo "Done."
